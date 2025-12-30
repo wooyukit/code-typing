@@ -1,94 +1,58 @@
 # Code Typing
 
-A terminal-based code typing game built in Rust using [Ratatui](https://github.com/ratatui-org/ratatui) for the TUI.
+A terminal-based typing game designed to help programmers improve their coding speed and accuracy. Practice typing real Rust code snippets while tracking your performance.
 
-## Features
+## Why Code Typing?
 
-- **Interactive Terminal UI** - Built with Ratatui for a modern terminal experience
-- **Code Snippets** - Type real Rust code samples to test your typing speed
-- **Real-time Feedback** - See character-by-character validation with color coding
-- **Performance Metrics** - Track your WPM (Words Per Minute) and accuracy
-- **Smooth Gameplay** - Event-driven architecture with responsive input handling
+Traditional typing tests use regular English text, but programming requires typing special characters like `{}`, `=>`, `::`, and proper indentation. **Code Typing** bridges this gap by letting you practice with actual code, helping you:
 
-## Building & Running
+- Build muscle memory for programming syntax
+- Get faster at typing brackets, operators, and symbols
+- Improve accuracy with code-specific patterns
+- Track your progress with WPM and accuracy metrics
 
-### Prerequisites
-- Rust 1.70+
-- Cargo
+## Quick Start
 
-### Build
 ```bash
-cargo build --release
-```
-
-### Run
-```bash
+# Clone and run
+git clone <repo-url>
+cd code-typing
 cargo run
 ```
 
-## How to Play
+That's it! Start typing the code you see on screen.
 
-1. Run the game with `cargo run`
-2. You'll see a piece of Rust code in the "Code to Type" section
-3. Start typing the code - characters will turn **green** for correct and **red** for incorrect
-4. When you've typed the entire code sample, the game ends automatically
-5. Your **WPM** and **Accuracy** will be displayed
-6. Press **ENTER** to play another round or **ESC** to quit
+## Gameplay
+
+When you launch the game, you'll see a Rust code snippet. Simply start typing to begin - the timer starts on your first keystroke.
+
+- **Green** characters = correct
+- **Red** characters = incorrect  
+- **Yellow cursor** = current position
+
+The progress bar at the bottom shows how much you've completed. When finished, press `Enter` for a new snippet or `Esc` to quit.
 
 ## Controls
 
-- **Type** - Input characters
-- **Backspace** - Delete the last character
-- **ENTER** - Start a new game (after finishing)
-- **ESC** - Quit the game
+| Key | Action |
+|-----|--------|
+| `Tab` | Insert indentation |
+| `Backspace` | Delete last character |
+| `Enter` | Next snippet (after completing) |
+| `Esc` | Quit |
 
-## Project Structure
+## Requirements
 
-```
-.
-├── Cargo.toml                  # Project dependencies
-├── Cargo.lock                  # Dependency lock file
-├── README.md                   # This file
-└── src/
-    ├── main.rs                 # Application entry point
-    └── app/
-        ├── mod.rs              # Module definitions and public exports
-        ├── state.rs            # GameState struct with game logic
-        ├── ui.rs               # UI rendering and display logic
-        └── game.rs             # Game orchestration and event loop
+- Rust 1.70+
+- A terminal that supports Unicode
+
+## Building from Source
+
+```bash
+cargo build --release
+./target/release/code-typing
 ```
 
-### Module Overview
+## License
 
-- **main.rs** - Sets up the terminal, initializes the game, and handles cleanup
-- **app/state.rs** - Contains `GameState` with all game mechanics (input handling, stats calculation)
-- **app/ui.rs** - Handles all rendering logic with the `draw()` function
-- **app/game.rs** - Orchestrates the game loop and input event handling
-- **app/mod.rs** - Organizes module exports
-
-## Dependencies
-
-- **ratatui** (0.28) - Terminal UI framework
-- **crossterm** (0.28) - Cross-platform terminal manipulation
-- **tokio** - Async runtime (for future extensions)
-- **serde** - Serialization framework (for future score saving)
-- **rand** - Random number generation for code sample selection
-
-## Architecture
-
-The project follows a modular architecture pattern:
-
-1. **State Management** - `GameState` handles all game logic independently
-2. **UI Rendering** - `ui` module handles all visual presentation
-3. **Game Loop** - `Game` struct orchestrates the event loop and state updates
-4. **Clean Separation** - Terminal setup is isolated in `main.rs`
-
-This design makes the code maintainable, testable, and easy to extend with new features.
-
-## Future Enhancements
-
-- Score tracking and leaderboards
-- Custom code snippet sets
-- Difficulty levels
-- Sound effects and feedback
-- Multiplayer mode
+MIT

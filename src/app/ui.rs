@@ -1,5 +1,5 @@
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Gauge, Paragraph, Wrap},
@@ -32,6 +32,21 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
         .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
         .alignment(Alignment::Center);
     f.render_widget(title, chunks[0]);
+
+    // Progress bar at the bottom of code area
+    let progress = (game_state.user_input.len() as f64 / game_state.current_code.len() as f64) * 100.0;
+    
+    // Split the main code area to add progress bar at bottom
+    let code_area_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(5), Constraint::Length(1)].as_ref())
+        .split(chunks[1]);
+    
+    let progress_gauge = Gauge::default()
+        .block(Block::default().style(Style::default().fg(Color::Cyan)))
+        .gauge_style(Style::default().fg(Color::Green).add_modifier(Modifier::BOLD))
+        .label(format!("{}%", progress as u32))
+        .ratio(progress / 100.0);
 
     // Combined Code to Type and Your Input
     let code_block = Block::default()
@@ -102,8 +117,9 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
     let code_display = Paragraph::new(code_lines)
         .block(code_block)
         .style(Style::default().fg(Color::White))
-        .wrap(Wrap { trim: true });
-    f.render_widget(code_display, chunks[1]);
+        .wrap(Wrap { trim: false });
+    f.render_widget(code_display, code_area_chunks[0]);
+    f.render_widget(progress_gauge, code_area_chunks[1]);
 
     // Stats and controls with better layout
     let stats_chunks = Layout::default()
@@ -111,7 +127,6 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
         .constraints(
             [
                 Constraint::Length(3),
-                Constraint::Length(1),
                 Constraint::Min(2),
             ]
             .as_ref(),
@@ -153,14 +168,6 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
         Span::styled(timer_str, Style::default().fg(Color::Yellow)),
     ];
 
-    // Progress bar
-    let progress = (game_state.user_input.len() as f64 / game_state.current_code.len() as f64) * 100.0;
-    let progress_gauge = Gauge::default()
-        .block(Block::default().style(Style::default().fg(Color::Cyan)))
-        .gauge_style(Style::default().fg(Color::Green).add_modifier(Modifier::BOLD))
-        .label(format!("{}%", progress as u32))
-        .ratio(progress / 100.0);
-
     // Controls
     let controls_text = if game_state.game_over {
         vec![Line::from(vec![
@@ -193,31 +200,9 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
         .style(Style::default());
 
     f.render_widget(stats_widget, stats_chunks[0]);
-    f.render_widget(progress_gauge, stats_chunks[1]);
 
     let controls_widget = Paragraph::new(controls_text)
         .style(Style::default().fg(Color::White));
 
-    f.render_widget(controls_widget, stats_chunks[2]);
-
-    if game_state.game_over {
-        let result_msg = Paragraph::new(
-            Span::styled(
-                &game_state.message,
-                Style::default()
-                    .fg(Color::Green)
-                    .add_modifier(Modifier::BOLD),
-            ),
-        )
-        .alignment(Alignment::Center)
-        .style(Style::default());
-
-        let msg_area = Rect {
-            x: chunks[2].x,
-            y: chunks[2].y + 2,
-            width: chunks[2].width,
-            height: 1,
-        };
-        f.render_widget(result_msg, msg_area);
-    }
+    f.render_widget(controls_widget, stats_chunks[1]);
 }
