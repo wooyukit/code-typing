@@ -45,33 +45,100 @@ impl GameState {
         }
 
         // Convert tab to 4 spaces to match indentation in code samples
+        // For Enter, auto-indent by looking at what the next line's indentation should be
         let chars_to_add = if c == '\t' {
             "    ".to_string() // 4 spaces
+        } else if c == '\n' {
+            // Auto-indent: add newline plus the leading whitespace of the next line
+            self.get_auto_indent_chars()
         } else {
             c.to_string()
         };
 
-        // Count actual characters being added for accuracy calculation
-        self.total_chars += chars_to_add.len();
-
-        // Add characters and check for correctness
-        for ch in chars_to_add.chars() {
-            self.user_input.push(ch);
-
-            if self.user_input.len() <= self.current_code.len() {
-                let current_char = self.current_code.chars().nth(self.user_input.len() - 1);
-                if Some(ch) == current_char {
-                    self.correct_chars += 1;
+        // For auto-indent (Enter), count as 1 keystroke and check if ALL chars are correct
+        // For other inputs, count each character
+        let is_auto_indent = c == '\n' && chars_to_add.len() > 1;
+        
+        if is_auto_indent {
+            // Count as 1 keystroke
+            self.total_chars += 1;
+            
+            // Check if ALL auto-indented characters match
+            let mut all_correct = true;
+            for (i, ch) in chars_to_add.chars().enumerate() {
+                let target_pos = self.user_input.len() + i;
+                if target_pos < self.current_code.len() {
+                    let target_char = self.current_code.chars().nth(target_pos);
+                    if Some(ch) != target_char {
+                        all_correct = false;
+                    }
                 }
             }
+            
+            // Add characters to input
+            for ch in chars_to_add.chars() {
+                self.user_input.push(ch);
+                if self.user_input.len() >= self.current_code.len() {
+                    if all_correct {
+                        self.correct_chars += 1;
+                    }
+                    self.finish_game();
+                    return;
+                }
+            }
+            
+            // Count as 1 correct if all matched
+            if all_correct {
+                self.correct_chars += 1;
+            }
+        } else {
+            // Normal input: count each character
+            self.total_chars += chars_to_add.len();
+            
+            for ch in chars_to_add.chars() {
+                self.user_input.push(ch);
 
-            if self.user_input.len() >= self.current_code.len() {
-                self.finish_game();
-                return;
+                if self.user_input.len() <= self.current_code.len() {
+                    let current_char = self.current_code.chars().nth(self.user_input.len() - 1);
+                    if Some(ch) == current_char {
+                        self.correct_chars += 1;
+                    }
+                }
+
+                if self.user_input.len() >= self.current_code.len() {
+                    self.finish_game();
+                    return;
+                }
             }
         }
 
         self.update_stats();
+    }
+
+    /// Get the characters to add for auto-indent when Enter is pressed.
+    /// Returns the newline character plus any leading whitespace from the next line.
+    fn get_auto_indent_chars(&self) -> String {
+        let current_pos = self.user_input.len();
+        
+        // Check if the next character in target code is a newline
+        if let Some('\n') = self.current_code.chars().nth(current_pos) {
+            let mut result = String::from("\n");
+            
+            // Look at characters after the newline and collect leading whitespace
+            let remaining: String = self.current_code.chars().skip(current_pos + 1).collect();
+            for ch in remaining.chars() {
+                if ch == ' ' || ch == '\t' {
+                    result.push(ch);
+                } else {
+                    break;
+                }
+            }
+            
+            result
+        } else {
+            // If next char isn't a newline, just add the newline (user made a mistake)
+            String::from("\n")
+        }
     }
 
     pub fn handle_backspace(&mut self) {
