@@ -6,7 +6,7 @@
 **A terminal-based typing game for Rust programmers.** Practice typing real Rust code snippets to build muscle memory for Rust syntax and special characters.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/vincentwoo/code-typing/main/demo.gif" alt="Code Typing Demo" width="600">
+  <img src="demo.gif" alt="Code Typing Demo" width="600">
 </p>
 
 ## Why Code Typing?
