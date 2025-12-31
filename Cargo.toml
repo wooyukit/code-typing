@@ -1,6 +1,6 @@
 [package]
 name = "code-typing"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Vincent Woo"]
 description = "A terminal-based typing game for Rust programmers. Practice typing real Rust code snippets to improve your coding speed and accuracy."
