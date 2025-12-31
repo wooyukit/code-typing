@@ -45,6 +45,20 @@ impl Game {
     }
 
     fn handle_input(&mut self, key: KeyCode) -> bool {
+        // If in confirm quit mode, handle Y/N/ESC
+        if self.game_state.confirm_quit {
+            match key {
+                KeyCode::Char('y') | KeyCode::Char('Y') => {
+                    return false; // Quit the game
+                }
+                KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                    self.game_state.confirm_quit = false; // Cancel quit
+                    return true;
+                }
+                _ => return true, // Ignore other keys
+            }
+        }
+
         match key {
             KeyCode::Char(c) => {
                 self.game_state.handle_input(c);
@@ -66,7 +80,22 @@ impl Game {
                 }
                 true
             }
-            KeyCode::Esc => false,
+            KeyCode::Left | KeyCode::Right => {
+                // Switch to random sample (only works before typing starts)
+                self.game_state.random_sample();
+                true
+            }
+            KeyCode::Esc => {
+                if self.game_state.first_input_time.is_some() && !self.game_state.game_over {
+                    // Typing in progress - restart current sample
+                    self.game_state.restart_current();
+                    true
+                } else {
+                    // Not started or game over - show quit confirmation
+                    self.game_state.confirm_quit = true;
+                    true
+                }
+            }
             _ => true,
         }
     }

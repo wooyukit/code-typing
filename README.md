@@ -1,58 +1,94 @@
-# Code Typing
+# ⌨️ Code Typing
 
-A terminal-based typing game designed to help programmers improve their coding speed and accuracy. Practice typing real Rust code snippets while tracking your performance.
+[![Crates.io](https://img.shields.io/crates/v/code-typing.svg)](https://crates.io/crates/code-typing)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**A terminal-based typing game for Rust programmers.** Practice typing real Rust code snippets to build muscle memory for Rust syntax and special characters.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/vincentwoo/code-typing/main/demo.gif" alt="Code Typing Demo" width="600">
+</p>
 
 ## Why Code Typing?
 
-Traditional typing tests use regular English text, but programming requires typing special characters like `{}`, `=>`, `::`, and proper indentation. **Code Typing** bridges this gap by letting you practice with actual code, helping you:
+Traditional typing tests use regular English text, but Rust programming requires typing special characters like `{}`, `=>`, `::`, `|x|`, `<T>`, and `&mut`. **Code Typing** bridges this gap:
 
-- Build muscle memory for programming syntax
-- Get faster at typing brackets, operators, and symbols
-- Improve accuracy with code-specific patterns
-- Track your progress with WPM and accuracy metrics
+- 🦀 **Rust-focused** — 50 curated Rust code snippets
+- 🎯 **Real patterns** — algorithms, data structures, traits, iterators, and more
+- ⚡ **Real-time feedback** — see correct/incorrect characters instantly
+- 📊 **WPM & accuracy tracking** — measure your improvement over time
 
-## Quick Start
+## Installation
+
+### From crates.io
 
 ```bash
-# Clone and run
-git clone <repo-url>
-cd code-typing
-cargo run
+cargo install code-typing
 ```
 
-That's it! Start typing the code you see on screen.
+### From source
+
+```bash
+git clone https://github.com/vincentwoo/code-typing
+cd code-typing
+cargo install --path .
+```
+
+## Usage
+
+```bash
+code-typing
+```
+
+That's it! Start typing the code you see on screen. The timer starts on your first keystroke.
 
 ## Gameplay
 
-When you launch the game, you'll see a Rust code snippet. Simply start typing to begin - the timer starts on your first keystroke.
+| Visual | Meaning |
+|--------|---------|
+| 🟢 Green text | Correctly typed |
+| 🔴 Red text | Incorrect |
+| 🟡 Yellow cursor | Current position |
 
-- **Green** characters = correct
-- **Red** characters = incorrect  
-- **Yellow cursor** = current position
-
-The progress bar at the bottom shows how much you've completed. When finished, press `Enter` for a new snippet or `Esc` to quit.
+The progress bar shows completion. When finished, press **Enter** for a new snippet or **Esc** to quit.
 
 ## Controls
 
 | Key | Action |
 |-----|--------|
-| `Tab` | Insert indentation |
+| `Tab` | Insert 4-space indentation |
 | `Backspace` | Delete last character |
 | `Enter` | Next snippet (after completing) |
 | `Esc` | Quit |
 
+## Code Samples Include
+
+- **Algorithms** — QuickSort, Binary Search, DFS, BFS, Dijkstra
+- **Data Structures** — Linked List, Binary Tree, Stack, Queue, HashMap
+- **Classic Problems** — FizzBuzz, Two Sum, Valid Parentheses, Fibonacci
+- **Rust Patterns** — Iterators, Closures, Traits, Generics, Error Handling
+
 ## Requirements
 
-- Rust 1.70+
-- A terminal that supports Unicode
+- Rust 1.70+ (for installation)
+- Terminal with Unicode support
+- Works on macOS, Linux, and Windows
 
-## Building from Source
+## Tips for Improving
 
-```bash
-cargo build --release
-./target/release/code-typing
-```
+1. **Focus on accuracy first** — Speed comes naturally with muscle memory
+2. **Pay attention to special characters** — `{}`, `()`, `<>`, `::`, `=>` are common in code
+3. **Practice indentation** — Use Tab for consistent spacing
+4. **Take breaks** — Short, focused sessions are more effective
+
+## Contributing
+
+Contributions welcome! Feel free to:
+- Add more code samples
+- Support other programming languages
+- Improve the UI/UX
+- Report bugs
 
 ## License
 
-MIT
+MIT © Vincent Woo

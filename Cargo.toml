@@ -2,6 +2,20 @@
 name = "code-typing"
 version = "0.1.0"
 edition = "2021"
+authors = ["Vincent Woo"]
+description = "A terminal-based typing game for Rust programmers. Practice typing real Rust code snippets to improve your coding speed and accuracy."
+license = "MIT"
+repository = "https://github.com/vincentwoo/code-typing"
+homepage = "https://github.com/vincentwoo/code-typing"
+documentation = "https://github.com/vincentwoo/code-typing#readme"
+readme = "README.md"
+keywords = ["typing", "game", "terminal", "rust", "practice"]
+categories = ["command-line-utilities", "games"]
+exclude = ["target/", ".git/", ".gitignore"]
+
+[[bin]]
+name = "code-typing"
+path = "src/main.rs"
 
 [dependencies]
 ratatui = "0.28"
@@ -10,3 +24,8 @@ tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 rand = "0.8"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

@@ -1,5 +1,6 @@
 use std::time::Instant;
 use super::samples::CODE_SAMPLES;
+use rand::Rng;
 
 #[derive(Clone)]
 pub struct GameState {
@@ -14,11 +15,12 @@ pub struct GameState {
     pub accuracy: f32,
     pub game_over: bool,
     pub message: String,
+    pub confirm_quit: bool,  // Whether showing quit confirmation
 }
 
 impl GameState {
     pub fn new() -> Self {
-        let idx = (Instant::now().elapsed().as_nanos() as usize) % CODE_SAMPLES.len();
+        let idx = rand::thread_rng().gen_range(0..CODE_SAMPLES.len());
         GameState {
             current_code: CODE_SAMPLES[idx].to_string(),
             user_input: String::new(),
@@ -31,6 +33,16 @@ impl GameState {
             accuracy: 0.0,
             game_over: false,
             message: String::new(),
+            confirm_quit: false,
+        }
+    }
+
+    /// Switch to a random code sample (only works before typing starts)
+    pub fn random_sample(&mut self) {
+        if self.first_input_time.is_none() {
+            let idx = rand::thread_rng().gen_range(0..CODE_SAMPLES.len());
+            self.current_code = CODE_SAMPLES[idx].to_string();
+            self.user_input.clear();
         }
     }
 
@@ -181,7 +193,7 @@ impl GameState {
     }
 
     pub fn reset(&mut self) {
-        let idx = (Instant::now().elapsed().as_nanos() as usize) % CODE_SAMPLES.len();
+        let idx = rand::thread_rng().gen_range(0..CODE_SAMPLES.len());
         self.current_code = CODE_SAMPLES[idx].to_string();
         self.user_input.clear();
         self.start_time = Instant::now();
@@ -193,6 +205,22 @@ impl GameState {
         self.accuracy = 0.0;
         self.game_over = false;
         self.message.clear();
+        self.confirm_quit = false;
+    }
+
+    /// Restart the current sample (keep same code, reset progress)
+    pub fn restart_current(&mut self) {
+        self.user_input.clear();
+        self.start_time = Instant::now();
+        self.first_input_time = None;
+        self.end_time = None;
+        self.correct_chars = 0;
+        self.total_chars = 0;
+        self.wpm = 0.0;
+        self.accuracy = 0.0;
+        self.game_over = false;
+        self.message.clear();
+        self.confirm_quit = false;
     }
 }
 
