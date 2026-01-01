@@ -1,6 +1,6 @@
 [package]
 name = "code-typing"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Vincent Woo"]
 description = "A terminal-based typing game for Rust programmers. Practice typing real Rust code snippets to improve your coding speed and accuracy."
@@ -20,9 +20,6 @@ path = "src/main.rs"
 [dependencies]
 ratatui = "0.28"
 crossterm = "0.28"
-tokio = { version = "1", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
 rand = "0.8"
 
 [profile.release]

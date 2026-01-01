@@ -13,7 +13,7 @@
 
 Traditional typing tests use regular English text, but Rust programming requires typing special characters like `{}`, `=>`, `::`, `|x|`, `<T>`, and `&mut`. **Code Typing** bridges this gap:
 
-- 🦀 **Rust-focused** — 50 curated Rust code snippets
+- 🦀 **Rust-focused** — 100 curated Rust code snippets
 - 🎯 **Real patterns** — algorithms, data structures, traits, iterators, and more
 - ⚡ **Real-time feedback** — see correct/incorrect characters instantly
 - 📊 **WPM & accuracy tracking** — measure your improvement over time
@@ -29,7 +29,7 @@ cargo install code-typing
 ### From source
 
 ```bash
-git clone https://github.com/vincentwoo/code-typing
+git clone https://github.com/wooyukit/code-typing
 cd code-typing
 cargo install --path .
 ```
@@ -63,10 +63,15 @@ The progress bar shows completion. When finished, press **Enter** for a new snip
 
 ## Code Samples Include
 
-- **Algorithms** — QuickSort, Binary Search, DFS, BFS, Dijkstra
-- **Data Structures** — Linked List, Binary Tree, Stack, Queue, HashMap
+- **Algorithms** — QuickSort, Binary Search, Merge Sort, DFS, BFS, Dijkstra
+- **Data Structures** — Linked List, Binary Tree, Stack, Queue, HashMap, BTreeMap, VecDeque
 - **Classic Problems** — FizzBuzz, Two Sum, Valid Parentheses, Fibonacci
 - **Rust Patterns** — Iterators, Closures, Traits, Generics, Error Handling
+- **Smart Pointers** — Box, Rc, RefCell, Arc, Cow, PhantomData
+- **Traits** — From/Into, Drop, Deref, AsRef, Default, Display, PartialEq/Ord, Hash, Index
+- **Concurrency** — Mutex, RwLock, Channels, Threads, Arc
+- **Design Patterns** — Builder, Newtype, Type State
+- **Advanced Iterators** — fold, reduce, partition, peekable, flatten, flat_map
 
 ## Requirements
 

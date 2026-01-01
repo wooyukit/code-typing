@@ -148,4 +148,154 @@ pub const CODE_SAMPLES: &[&str] = &[
 
     // 50. File I/O
     "use std::fs::File;\nuse std::io::{Read, Write};\n\nfn write_file(path: &str, content: &str) -> std::io::Result<()> {\n    let mut file = File::create(path)?;\n    file.write_all(content.as_bytes())?;\n    Ok(())\n}\n\nfn read_file(path: &str) -> std::io::Result<String> {\n    let mut file = File::open(path)?;\n    let mut content = String::new();\n    file.read_to_string(&mut content)?;\n    Ok(content)\n}",
+
+    // 51. Merge Sort
+    "fn merge_sort<T: Ord + Clone>(arr: &mut [T]) {\n    let len = arr.len();\n    if len <= 1 { return; }\n    let mid = len / 2;\n    merge_sort(&mut arr[..mid]);\n    merge_sort(&mut arr[mid..]);\n    let mut merged = arr.to_vec();\n    merge(&arr[..mid], &arr[mid..], &mut merged);\n    arr.clone_from_slice(&merged);\n}\n\nfn merge<T: Ord + Clone>(left: &[T], right: &[T], result: &mut [T]) {\n    let (mut i, mut j, mut k) = (0, 0, 0);\n    while i < left.len() && j < right.len() {\n        if left[i] <= right[j] {\n            result[k] = left[i].clone();\n            i += 1;\n        } else {\n            result[k] = right[j].clone();\n            j += 1;\n        }\n        k += 1;\n    }\n    while i < left.len() { result[k] = left[i].clone(); i += 1; k += 1; }\n    while j < right.len() { result[k] = right[j].clone(); j += 1; k += 1; }\n}",
+
+    // 52. Rc and RefCell
+    "use std::rc::Rc;\nuse std::cell::RefCell;\n\nstruct Node {\n    value: i32,\n    children: Vec<Rc<RefCell<Node>>>,\n}\n\nimpl Node {\n    fn new(value: i32) -> Rc<RefCell<Self>> {\n        Rc::new(RefCell::new(Node {\n            value,\n            children: Vec::new(),\n        }))\n    }\n\n    fn add_child(&mut self, child: Rc<RefCell<Node>>) {\n        self.children.push(child);\n    }\n}",
+
+    // 53. Custom Iterator
+    "struct Counter {\n    count: u32,\n    max: u32,\n}\n\nimpl Counter {\n    fn new(max: u32) -> Self {\n        Counter { count: 0, max }\n    }\n}\n\nimpl Iterator for Counter {\n    type Item = u32;\n\n    fn next(&mut self) -> Option<Self::Item> {\n        if self.count < self.max {\n            self.count += 1;\n            Some(self.count)\n        } else {\n            None\n        }\n    }\n}\n\nfn main() {\n    for n in Counter::new(5) {\n        println!(\"{}\", n);\n    }\n}",
+
+    // 54. Builder Pattern
+    "struct Request {\n    url: String,\n    method: String,\n    headers: Vec<(String, String)>,\n    body: Option<String>,\n}\n\nstruct RequestBuilder {\n    url: String,\n    method: String,\n    headers: Vec<(String, String)>,\n    body: Option<String>,\n}\n\nimpl RequestBuilder {\n    fn new(url: &str) -> Self {\n        RequestBuilder {\n            url: url.to_string(),\n            method: \"GET\".to_string(),\n            headers: Vec::new(),\n            body: None,\n        }\n    }\n\n    fn method(mut self, method: &str) -> Self {\n        self.method = method.to_string();\n        self\n    }\n\n    fn header(mut self, key: &str, value: &str) -> Self {\n        self.headers.push((key.to_string(), value.to_string()));\n        self\n    }\n\n    fn body(mut self, body: &str) -> Self {\n        self.body = Some(body.to_string());\n        self\n    }\n\n    fn build(self) -> Request {\n        Request {\n            url: self.url,\n            method: self.method,\n            headers: self.headers,\n            body: self.body,\n        }\n    }\n}",
+
+    // 55. From and Into traits
+    "struct Celsius(f64);\nstruct Fahrenheit(f64);\n\nimpl From<Celsius> for Fahrenheit {\n    fn from(c: Celsius) -> Self {\n        Fahrenheit(c.0 * 9.0 / 5.0 + 32.0)\n    }\n}\n\nimpl From<Fahrenheit> for Celsius {\n    fn from(f: Fahrenheit) -> Self {\n        Celsius((f.0 - 32.0) * 5.0 / 9.0)\n    }\n}\n\nfn main() {\n    let c = Celsius(100.0);\n    let f: Fahrenheit = c.into();\n    println!(\"100C = {}F\", f.0);\n}",
+
+    // 56. Drop trait
+    "struct Resource {\n    name: String,\n}\n\nimpl Resource {\n    fn new(name: &str) -> Self {\n        println!(\"Creating {}\", name);\n        Resource { name: name.to_string() }\n    }\n}\n\nimpl Drop for Resource {\n    fn drop(&mut self) {\n        println!(\"Dropping {}\", self.name);\n    }\n}\n\nfn main() {\n    let r1 = Resource::new(\"resource1\");\n    {\n        let r2 = Resource::new(\"resource2\");\n    }\n    println!(\"End of main\");\n}",
+
+    // 57. Deref trait
+    "use std::ops::Deref;\n\nstruct MyBox<T>(T);\n\nimpl<T> MyBox<T> {\n    fn new(x: T) -> MyBox<T> {\n        MyBox(x)\n    }\n}\n\nimpl<T> Deref for MyBox<T> {\n    type Target = T;\n\n    fn deref(&self) -> &Self::Target {\n        &self.0\n    }\n}\n\nfn main() {\n    let x = 5;\n    let y = MyBox::new(x);\n    assert_eq!(5, *y);\n}",
+
+    // 58. AsRef trait
+    "fn print_length<T: AsRef<str>>(s: T) {\n    println!(\"Length: {}\", s.as_ref().len());\n}\n\nfn main() {\n    let string = String::from(\"hello\");\n    let str_slice = \"world\";\n    \n    print_length(string);\n    print_length(str_slice);\n}",
+
+    // 59. Cow (Clone on Write)
+    "use std::borrow::Cow;\n\nfn remove_spaces(s: &str) -> Cow<str> {\n    if s.contains(' ') {\n        Cow::Owned(s.replace(' ', \"\"))\n    } else {\n        Cow::Borrowed(s)\n    }\n}\n\nfn main() {\n    let s1 = \"hello\";\n    let s2 = \"hello world\";\n    \n    println!(\"{}\", remove_spaces(s1));\n    println!(\"{}\", remove_spaces(s2));\n}",
+
+    // 60. PhantomData
+    "use std::marker::PhantomData;\n\nstruct Meters;\nstruct Feet;\n\nstruct Distance<T> {\n    value: f64,\n    _unit: PhantomData<T>,\n}\n\nimpl<T> Distance<T> {\n    fn new(value: f64) -> Self {\n        Distance { value, _unit: PhantomData }\n    }\n}\n\nfn main() {\n    let m: Distance<Meters> = Distance::new(100.0);\n    let f: Distance<Feet> = Distance::new(328.0);\n    println!(\"{}m, {}ft\", m.value, f.value);\n}",
+
+    // 61. Newtype pattern
+    "struct UserId(u64);\nstruct OrderId(u64);\n\nimpl UserId {\n    fn new(id: u64) -> Self {\n        UserId(id)\n    }\n\n    fn value(&self) -> u64 {\n        self.0\n    }\n}\n\nfn get_user_orders(user_id: UserId) -> Vec<OrderId> {\n    vec![OrderId(1), OrderId(2)]\n}\n\nfn main() {\n    let user = UserId::new(42);\n    let orders = get_user_orders(user);\n}",
+
+    // 62. Type State pattern
+    "struct Locked;\nstruct Unlocked;\n\nstruct Door<State> {\n    _state: std::marker::PhantomData<State>,\n}\n\nimpl Door<Locked> {\n    fn new() -> Self {\n        Door { _state: std::marker::PhantomData }\n    }\n\n    fn unlock(self) -> Door<Unlocked> {\n        println!(\"Door unlocked\");\n        Door { _state: std::marker::PhantomData }\n    }\n}\n\nimpl Door<Unlocked> {\n    fn lock(self) -> Door<Locked> {\n        println!(\"Door locked\");\n        Door { _state: std::marker::PhantomData }\n    }\n\n    fn open(&self) {\n        println!(\"Door opened\");\n    }\n}",
+
+    // 63. Default trait
+    "#[derive(Debug)]\nstruct Config {\n    host: String,\n    port: u16,\n    timeout: u64,\n}\n\nimpl Default for Config {\n    fn default() -> Self {\n        Config {\n            host: \"localhost\".to_string(),\n            port: 8080,\n            timeout: 30,\n        }\n    }\n}\n\nfn main() {\n    let config = Config::default();\n    let custom = Config { port: 3000, ..Default::default() };\n    println!(\"{:?}\", config);\n    println!(\"{:?}\", custom);\n}",
+
+    // 64. Display trait
+    "use std::fmt;\n\nstruct Point {\n    x: f64,\n    y: f64,\n}\n\nimpl fmt::Display for Point {\n    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {\n        write!(f, \"({}, {})\", self.x, self.y)\n    }\n}\n\nimpl fmt::Debug for Point {\n    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {\n        write!(f, \"Point {{ x: {}, y: {} }}\", self.x, self.y)\n    }\n}\n\nfn main() {\n    let p = Point { x: 3.0, y: 4.0 };\n    println!(\"{}\", p);\n    println!(\"{:?}\", p);\n}",
+
+    // 65. PartialEq and Eq
+    "#[derive(Debug)]\nstruct Person {\n    name: String,\n    age: u32,\n}\n\nimpl PartialEq for Person {\n    fn eq(&self, other: &Self) -> bool {\n        self.name == other.name\n    }\n}\n\nimpl Eq for Person {}\n\nfn main() {\n    let p1 = Person { name: \"Alice\".into(), age: 30 };\n    let p2 = Person { name: \"Alice\".into(), age: 25 };\n    println!(\"p1 == p2: {}\", p1 == p2);\n}",
+
+    // 66. PartialOrd and Ord
+    "#[derive(Debug, Eq, PartialEq)]\nstruct Version {\n    major: u32,\n    minor: u32,\n    patch: u32,\n}\n\nimpl PartialOrd for Version {\n    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n        Some(self.cmp(other))\n    }\n}\n\nimpl Ord for Version {\n    fn cmp(&self, other: &Self) -> std::cmp::Ordering {\n        (self.major, self.minor, self.patch)\n            .cmp(&(other.major, other.minor, other.patch))\n    }\n}\n\nfn main() {\n    let v1 = Version { major: 1, minor: 2, patch: 3 };\n    let v2 = Version { major: 1, minor: 3, patch: 0 };\n    println!(\"v1 < v2: {}\", v1 < v2);\n}",
+
+    // 67. Hash trait
+    "use std::collections::HashSet;\nuse std::hash::{Hash, Hasher};\n\n#[derive(Debug)]\nstruct Point {\n    x: i32,\n    y: i32,\n}\n\nimpl Hash for Point {\n    fn hash<H: Hasher>(&self, state: &mut H) {\n        self.x.hash(state);\n        self.y.hash(state);\n    }\n}\n\nimpl PartialEq for Point {\n    fn eq(&self, other: &Self) -> bool {\n        self.x == other.x && self.y == other.y\n    }\n}\n\nimpl Eq for Point {}\n\nfn main() {\n    let mut set = HashSet::new();\n    set.insert(Point { x: 1, y: 2 });\n    set.insert(Point { x: 3, y: 4 });\n}",
+
+    // 68. Index trait
+    "use std::ops::Index;\n\nstruct Matrix {\n    data: Vec<Vec<i32>>,\n}\n\nimpl Index<(usize, usize)> for Matrix {\n    type Output = i32;\n\n    fn index(&self, (row, col): (usize, usize)) -> &Self::Output {\n        &self.data[row][col]\n    }\n}\n\nfn main() {\n    let m = Matrix {\n        data: vec![vec![1, 2], vec![3, 4]],\n    };\n    println!(\"m[1,1] = {}\", m[(1, 1)]);\n}",
+
+    // 69. Add trait
+    "use std::ops::Add;\n\n#[derive(Debug, Clone, Copy)]\nstruct Vector2 {\n    x: f64,\n    y: f64,\n}\n\nimpl Add for Vector2 {\n    type Output = Self;\n\n    fn add(self, other: Self) -> Self::Output {\n        Vector2 {\n            x: self.x + other.x,\n            y: self.y + other.y,\n        }\n    }\n}\n\nfn main() {\n    let v1 = Vector2 { x: 1.0, y: 2.0 };\n    let v2 = Vector2 { x: 3.0, y: 4.0 };\n    let v3 = v1 + v2;\n    println!(\"{:?}\", v3);\n}",
+
+    // 70. Mul trait
+    "use std::ops::Mul;\n\n#[derive(Debug, Clone, Copy)]\nstruct Vector2 {\n    x: f64,\n    y: f64,\n}\n\nimpl Mul<f64> for Vector2 {\n    type Output = Self;\n\n    fn mul(self, scalar: f64) -> Self::Output {\n        Vector2 {\n            x: self.x * scalar,\n            y: self.y * scalar,\n        }\n    }\n}\n\nfn main() {\n    let v = Vector2 { x: 2.0, y: 3.0 };\n    let scaled = v * 2.5;\n    println!(\"{:?}\", scaled);\n}",
+
+    // 71. BinaryHeap
+    "use std::collections::BinaryHeap;\n\nfn main() {\n    let mut heap = BinaryHeap::new();\n    heap.push(3);\n    heap.push(1);\n    heap.push(4);\n    heap.push(1);\n    heap.push(5);\n\n    while let Some(val) = heap.pop() {\n        println!(\"{}\", val);\n    }\n}",
+
+    // 72. BTreeMap
+    "use std::collections::BTreeMap;\n\nfn main() {\n    let mut map = BTreeMap::new();\n    map.insert(\"c\", 3);\n    map.insert(\"a\", 1);\n    map.insert(\"b\", 2);\n\n    for (key, value) in &map {\n        println!(\"{}: {}\", key, value);\n    }\n\n    if let Some(range) = map.range(\"a\"..\"c\").next() {\n        println!(\"First in range: {:?}\", range);\n    }\n}",
+
+    // 73. VecDeque
+    "use std::collections::VecDeque;\n\nfn main() {\n    let mut deque = VecDeque::new();\n    deque.push_back(1);\n    deque.push_back(2);\n    deque.push_front(0);\n\n    println!(\"Front: {:?}\", deque.front());\n    println!(\"Back: {:?}\", deque.back());\n\n    while let Some(val) = deque.pop_front() {\n        println!(\"{}\", val);\n    }\n}",
+
+    // 74. LinkedList
+    "use std::collections::LinkedList;\n\nfn main() {\n    let mut list = LinkedList::new();\n    list.push_back(1);\n    list.push_back(2);\n    list.push_front(0);\n\n    for val in &list {\n        println!(\"{}\", val);\n    }\n\n    let mut list2 = LinkedList::new();\n    list2.push_back(3);\n    list.append(&mut list2);\n}",
+
+    // 75. Entry API
+    "use std::collections::HashMap;\n\nfn word_count(text: &str) -> HashMap<String, u32> {\n    let mut counts = HashMap::new();\n    for word in text.split_whitespace() {\n        let word = word.to_lowercase();\n        *counts.entry(word).or_insert(0) += 1;\n    }\n    counts\n}\n\nfn main() {\n    let text = \"hello world hello rust world\";\n    for (word, count) in word_count(text) {\n        println!(\"{}: {}\", word, count);\n    }\n}",
+
+    // 76. Lifetime annotations
+    "fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {\n    if x.len() > y.len() { x } else { y }\n}\n\nstruct Excerpt<'a> {\n    part: &'a str,\n}\n\nimpl<'a> Excerpt<'a> {\n    fn level(&self) -> i32 {\n        3\n    }\n\n    fn announce(&self, announcement: &str) -> &str {\n        println!(\"Attention: {}\", announcement);\n        self.part\n    }\n}\n\nfn main() {\n    let s1 = \"long string\";\n    let s2 = \"short\";\n    println!(\"Longest: {}\", longest(s1, s2));\n}",
+
+    // 77. Static lifetime
+    "static GREETING: &str = \"Hello, World!\";\n\nfn get_static_str() -> &'static str {\n    \"I live forever\"\n}\n\nfn main() {\n    println!(\"{}\", GREETING);\n    let s: &'static str = get_static_str();\n    println!(\"{}\", s);\n}",
+
+    // 78. Box smart pointer
+    "enum List {\n    Cons(i32, Box<List>),\n    Nil,\n}\n\nuse List::{Cons, Nil};\n\nfn main() {\n    let list = Cons(1, Box::new(Cons(2, Box::new(Cons(3, Box::new(Nil))))));\n\n    fn sum(list: &List) -> i32 {\n        match list {\n            Cons(val, next) => val + sum(next),\n            Nil => 0,\n        }\n    }\n\n    println!(\"Sum: {}\", sum(&list));\n}",
+
+    // 79. Arc for thread safety
+    "use std::sync::Arc;\nuse std::thread;\n\nfn main() {\n    let data = Arc::new(vec![1, 2, 3, 4, 5]);\n    let mut handles = vec![];\n\n    for i in 0..3 {\n        let data = Arc::clone(&data);\n        let handle = thread::spawn(move || {\n            println!(\"Thread {}: {:?}\", i, data);\n        });\n        handles.push(handle);\n    }\n\n    for handle in handles {\n        handle.join().unwrap();\n    }\n}",
+
+    // 80. Mutex
+    "use std::sync::Mutex;\n\nfn main() {\n    let m = Mutex::new(5);\n\n    {\n        let mut num = m.lock().unwrap();\n        *num = 6;\n    }\n\n    println!(\"m = {:?}\", m);\n}",
+
+    // 81. RwLock
+    "use std::sync::RwLock;\n\nfn main() {\n    let lock = RwLock::new(5);\n\n    {\n        let r1 = lock.read().unwrap();\n        let r2 = lock.read().unwrap();\n        println!(\"Readers: {} and {}\", *r1, *r2);\n    }\n\n    {\n        let mut w = lock.write().unwrap();\n        *w += 1;\n        println!(\"Writer: {}\", *w);\n    }\n}",
+
+    // 82. Channel communication
+    "use std::sync::mpsc;\nuse std::thread;\n\nfn main() {\n    let (tx, rx) = mpsc::channel();\n\n    thread::spawn(move || {\n        let vals = vec![\"hi\", \"from\", \"the\", \"thread\"];\n        for val in vals {\n            tx.send(val).unwrap();\n        }\n    });\n\n    for received in rx {\n        println!(\"Got: {}\", received);\n    }\n}",
+
+    // 83. Multiple producers
+    "use std::sync::mpsc;\nuse std::thread;\n\nfn main() {\n    let (tx, rx) = mpsc::channel();\n    let tx1 = tx.clone();\n\n    thread::spawn(move || {\n        tx.send(\"from tx\").unwrap();\n    });\n\n    thread::spawn(move || {\n        tx1.send(\"from tx1\").unwrap();\n    });\n\n    for received in rx {\n        println!(\"Got: {}\", received);\n    }\n}",
+
+    // 84. Thread spawn and join
+    "use std::thread;\nuse std::time::Duration;\n\nfn main() {\n    let handle = thread::spawn(|| {\n        for i in 1..10 {\n            println!(\"Thread: {}\", i);\n            thread::sleep(Duration::from_millis(1));\n        }\n    });\n\n    for i in 1..5 {\n        println!(\"Main: {}\", i);\n        thread::sleep(Duration::from_millis(1));\n    }\n\n    handle.join().unwrap();\n}",
+
+    // 85. Move closure with thread
+    "use std::thread;\n\nfn main() {\n    let v = vec![1, 2, 3];\n\n    let handle = thread::spawn(move || {\n        println!(\"Vector: {:?}\", v);\n    });\n\n    handle.join().unwrap();\n}",
+
+    // 86. Custom error type
+    "#[derive(Debug)]\nenum AppError {\n    IoError(std::io::Error),\n    ParseError(std::num::ParseIntError),\n    Custom(String),\n}\n\nimpl std::fmt::Display for AppError {\n    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n        match self {\n            AppError::IoError(e) => write!(f, \"IO error: {}\", e),\n            AppError::ParseError(e) => write!(f, \"Parse error: {}\", e),\n            AppError::Custom(s) => write!(f, \"Error: {}\", s),\n        }\n    }\n}\n\nimpl std::error::Error for AppError {}",
+
+    // 87. Question mark operator
+    "fn read_number(s: &str) -> Result<i32, std::num::ParseIntError> {\n    let n = s.trim().parse::<i32>()?;\n    Ok(n * 2)\n}\n\nfn main() {\n    match read_number(\"42\") {\n        Ok(n) => println!(\"Result: {}\", n),\n        Err(e) => println!(\"Error: {}\", e),\n    }\n}",
+
+    // 88. Option combinators
+    "fn main() {\n    let some_num = Some(5);\n    let none_num: Option<i32> = None;\n\n    let mapped = some_num.map(|x| x * 2);\n    let and_then = some_num.and_then(|x| Some(x + 1));\n    let unwrap_or = none_num.unwrap_or(0);\n    let unwrap_or_else = none_num.unwrap_or_else(|| 42);\n    let ok_or = some_num.ok_or(\"error\");\n\n    println!(\"{:?}, {:?}, {}, {}\", mapped, and_then, unwrap_or, unwrap_or_else);\n}",
+
+    // 89. Result combinators
+    "fn main() {\n    let ok: Result<i32, &str> = Ok(5);\n    let err: Result<i32, &str> = Err(\"error\");\n\n    let mapped = ok.map(|x| x * 2);\n    let map_err = err.map_err(|e| format!(\"Error: {}\", e));\n    let and_then = ok.and_then(|x| Ok(x + 1));\n    let unwrap_or = err.unwrap_or(0);\n\n    println!(\"{:?}, {:?}, {:?}, {}\", mapped, map_err, and_then, unwrap_or);\n}",
+
+    // 90. Slice patterns
+    "fn describe_slice(slice: &[i32]) {\n    match slice {\n        [] => println!(\"empty\"),\n        [x] => println!(\"single: {}\", x),\n        [x, y] => println!(\"pair: {}, {}\", x, y),\n        [first, .., last] => println!(\"first: {}, last: {}\", first, last),\n    }\n}\n\nfn main() {\n    describe_slice(&[]);\n    describe_slice(&[1]);\n    describe_slice(&[1, 2]);\n    describe_slice(&[1, 2, 3, 4, 5]);\n}",
+
+    // 91. If let and while let
+    "fn main() {\n    let optional = Some(7);\n\n    if let Some(x) = optional {\n        println!(\"Got: {}\", x);\n    }\n\n    let mut stack = vec![1, 2, 3];\n\n    while let Some(top) = stack.pop() {\n        println!(\"{}\", top);\n    }\n}",
+
+    // 92. Let else
+    "fn get_count(s: &str) -> Option<u32> {\n    let Some(count) = s.parse::<u32>().ok() else {\n        return None;\n    };\n    Some(count * 2)\n}\n\nfn main() {\n    println!(\"{:?}\", get_count(\"42\"));\n    println!(\"{:?}\", get_count(\"abc\"));\n}",
+
+    // 93. Matches macro
+    "fn main() {\n    let foo = 'f';\n    assert!(matches!(foo, 'A'..='Z' | 'a'..='z'));\n\n    let bar = Some(4);\n    assert!(matches!(bar, Some(x) if x > 2));\n\n    let v = vec![1, 2, 3];\n    assert!(matches!(v.as_slice(), [1, ..]));\n}",
+
+    // 94. Collect into different types
+    "fn main() {\n    let v: Vec<i32> = (0..5).collect();\n    let s: String = ['h', 'e', 'l', 'l', 'o'].iter().collect();\n    let set: std::collections::HashSet<i32> = v.iter().cloned().collect();\n    let map: std::collections::HashMap<i32, i32> = v.iter().map(|&x| (x, x * 2)).collect();\n\n    println!(\"{:?}\", v);\n    println!(\"{}\", s);\n    println!(\"{:?}\", set);\n    println!(\"{:?}\", map);\n}",
+
+    // 95. Enumerate and zip
+    "fn main() {\n    let v = vec!['a', 'b', 'c'];\n\n    for (i, c) in v.iter().enumerate() {\n        println!(\"{}: {}\", i, c);\n    }\n\n    let nums = vec![1, 2, 3];\n    let chars = vec!['a', 'b', 'c'];\n\n    for (n, c) in nums.iter().zip(chars.iter()) {\n        println!(\"{} -> {}\", n, c);\n    }\n}",
+
+    // 96. Take and skip
+    "fn main() {\n    let v: Vec<i32> = (0..10).collect();\n\n    let first_five: Vec<i32> = v.iter().take(5).cloned().collect();\n    let skip_three: Vec<i32> = v.iter().skip(3).cloned().collect();\n    let take_while: Vec<i32> = v.iter().take_while(|&&x| x < 5).cloned().collect();\n    let skip_while: Vec<i32> = v.iter().skip_while(|&&x| x < 5).cloned().collect();\n\n    println!(\"{:?}\", first_five);\n    println!(\"{:?}\", skip_three);\n    println!(\"{:?}\", take_while);\n    println!(\"{:?}\", skip_while);\n}",
+
+    // 97. Fold and reduce
+    "fn main() {\n    let nums = vec![1, 2, 3, 4, 5];\n\n    let sum: i32 = nums.iter().fold(0, |acc, x| acc + x);\n    let product: i32 = nums.iter().fold(1, |acc, x| acc * x);\n    let concat: String = nums.iter().fold(String::new(), |acc, x| acc + &x.to_string());\n\n    let max = nums.iter().cloned().reduce(|a, b| if a > b { a } else { b });\n\n    println!(\"Sum: {}, Product: {}\", sum, product);\n    println!(\"Concat: {}, Max: {:?}\", concat, max);\n}",
+
+    // 98. Partition and group
+    "fn main() {\n    let nums: Vec<i32> = (0..10).collect();\n\n    let (evens, odds): (Vec<i32>, Vec<i32>) = nums.iter().partition(|&&x| x % 2 == 0);\n\n    println!(\"Evens: {:?}\", evens);\n    println!(\"Odds: {:?}\", odds);\n\n    let words = vec![\"apple\", \"banana\", \"apricot\", \"blueberry\"];\n    let grouped: std::collections::HashMap<char, Vec<&&str>> = words\n        .iter()\n        .fold(std::collections::HashMap::new(), |mut acc, word| {\n            acc.entry(word.chars().next().unwrap()).or_default().push(word);\n            acc\n        });\n    println!(\"{:?}\", grouped);\n}",
+
+    // 99. Peekable iterator
+    "fn main() {\n    let v = vec![1, 2, 3, 4, 5];\n    let mut iter = v.iter().peekable();\n\n    while let Some(&x) = iter.next() {\n        if let Some(&&next) = iter.peek() {\n            println!(\"{} followed by {}\", x, next);\n        } else {\n            println!(\"{} is last\", x);\n        }\n    }\n}",
+
+    // 100. Flatten and flat_map
+    "fn main() {\n    let nested = vec![vec![1, 2], vec![3, 4], vec![5, 6]];\n    let flat: Vec<i32> = nested.iter().flatten().cloned().collect();\n    println!(\"{:?}\", flat);\n\n    let words = vec![\"hello\", \"world\"];\n    let chars: Vec<char> = words.iter().flat_map(|s| s.chars()).collect();\n    println!(\"{:?}\", chars);\n\n    let options = vec![Some(1), None, Some(3)];\n    let values: Vec<i32> = options.into_iter().flatten().collect();\n    println!(\"{:?}\", values);\n}",
 ];
