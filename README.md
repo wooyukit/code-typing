@@ -9,7 +9,11 @@
   <img src="demo.gif" alt="Code Typing Demo" width="600">
 </p>
 
-## Why Code Typing?
+<p align="center">
+  <img src="game_play_screen.png" alt="Code Typing Screenshot" width="600">
+</p>
+
+## 🤔 Why Code Typing?
 
 Traditional typing tests use regular English text, but Rust programming requires typing special characters like `{}`, `=>`, `::`, `|x|`, `<T>`, and `&mut`. **Code Typing** bridges this gap:
 
@@ -17,8 +21,9 @@ Traditional typing tests use regular English text, but Rust programming requires
 - 🎯 **Real patterns** — algorithms, data structures, traits, iterators, and more
 - ⚡ **Real-time feedback** — see correct/incorrect characters instantly
 - 📊 **WPM & accuracy tracking** — measure your improvement over time
+- 📤 **Output preview** — see the expected output after completing code with `println!`
 
-## Installation
+## 🚀 Installation
 
 ### From crates.io
 
@@ -34,34 +39,40 @@ cd code-typing
 cargo install --path .
 ```
 
-## Usage
+## 🎬 Usage
 
 ```bash
 code-typing
 ```
 
-That's it! Start typing the code you see on screen. The timer starts on your first keystroke.
+That's it! Start typing the code you see on screen. The timer starts on your first keystroke. ⏱️
 
-## Gameplay
+## 🎮 Gameplay
 
 | Visual | Meaning |
 |--------|---------|
-| 🟢 Green text | Correctly typed |
-| 🔴 Red text | Incorrect |
+| 🎨 Syntax-highlighted text | Correctly typed characters |
+| 🔴 Red underlined text | Incorrect characters |
 | 🟡 Yellow cursor | Current position |
+| 📊 Progress bar | Shows completion percentage |
 
-The progress bar shows completion. When finished, press **Enter** for a new snippet or **Esc** to quit.
+When you complete a snippet:
 
-## Controls
+- 📤 **Output panel** appears showing the expected `println!` output (if any)
+- 🎖️ **Performance rating** based on WPM and accuracy: 🏆 LEGENDARY, ⭐ EXCELLENT, ✓ GOOD, or → COMPLETE
+- ⏎ Press **Enter** for a new snippet or **Esc** to quit
+
+## ⌨️ Controls
 
 | Key | Action |
 |-----|--------|
-| `Tab` | Insert 4-space indentation |
-| `Backspace` | Delete last character |
-| `Enter` | Next snippet (after completing) |
-| `Esc` | Quit |
+| `←` `→` | 🔀 Change code sample (before typing starts) |
+| `Tab` | ➡️ Insert 4-space indentation |
+| `Enter` | ↩️ Auto-indent newline (during typing) / Next snippet (after completing) |
+| `Backspace` | ⬅️ Delete last character |
+| `Esc` | 🔄 Restart current sample (during typing) / 🚪 Quit (before typing or after completing) |
 
-## Code Samples Include
+## 📚 Code Samples Include
 
 - **Algorithms** — QuickSort, Binary Search, Merge Sort, DFS, BFS, Dijkstra
 - **Data Structures** — Linked List, Binary Tree, Stack, Queue, HashMap, BTreeMap, VecDeque
@@ -73,20 +84,20 @@ The progress bar shows completion. When finished, press **Enter** for a new snip
 - **Design Patterns** — Builder, Newtype, Type State
 - **Advanced Iterators** — fold, reduce, partition, peekable, flatten, flat_map
 
-## Requirements
+## 📋 Requirements
 
 - Rust 1.70+ (for installation)
 - Terminal with Unicode support
 - Works on macOS, Linux, and Windows
 
-## Tips for Improving
+## 💡 Tips for Improving
 
-1. **Focus on accuracy first** — Speed comes naturally with muscle memory
-2. **Pay attention to special characters** — `{}`, `()`, `<>`, `::`, `=>` are common in code
-3. **Practice indentation** — Use Tab for consistent spacing
-4. **Take breaks** — Short, focused sessions are more effective
+1. 🎯 **Focus on accuracy first** — Speed comes naturally with muscle memory
+2. ⚡ **Pay attention to special characters** — `{}`, `()`, `<>`, `::`, `=>` are common in code
+3. 📐 **Practice indentation** — Use Tab for consistent spacing
+4. ☕ **Take breaks** — Short, focused sessions are more effective
 
-## Contributing
+## 🤝 Contributing
 
 Contributions welcome! Feel free to:
 - Add more code samples
@@ -94,6 +105,6 @@ Contributions welcome! Feel free to:
 - Improve the UI/UX
 - Report bugs
 
-## License
+## 📄 License
 
 MIT © Vincent Woo
