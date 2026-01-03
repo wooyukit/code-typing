@@ -6,6 +6,7 @@ use rand::Rng;
 pub struct GameState {
     pub current_code: String,
     pub current_code_chars: Vec<char>,  // Pre-computed for O(1) access
+    pub expected_output: String,        // Expected output when code is run
     pub user_input: String,
     pub user_input_chars: Vec<char>,    // Pre-computed for O(1) access
     pub first_input_time: Option<Instant>,
@@ -21,11 +22,12 @@ pub struct GameState {
 impl GameState {
     pub fn new() -> Self {
         let idx = rand::thread_rng().gen_range(0..CODE_SAMPLES.len());
-        let code = CODE_SAMPLES[idx].to_string();
+        let (code, output) = CODE_SAMPLES[idx];
         let code_chars = code.chars().collect();
         GameState {
-            current_code: code,
+            current_code: code.to_string(),
             current_code_chars: code_chars,
+            expected_output: output.to_string(),
             user_input: String::new(),
             user_input_chars: Vec::new(),
             first_input_time: None,
@@ -49,8 +51,10 @@ impl GameState {
                 idx = rand::thread_rng().gen_range(0..CODE_SAMPLES.len());
             }
             self.current_sample_idx = idx;
-            self.current_code = CODE_SAMPLES[idx].to_string();
+            let (code, output) = CODE_SAMPLES[idx];
+            self.current_code = code.to_string();
             self.current_code_chars = self.current_code.chars().collect();
+            self.expected_output = output.to_string();
             self.user_input.clear();
             self.user_input_chars.clear();
         }
@@ -204,8 +208,10 @@ impl GameState {
             }
         }
         self.current_sample_idx = idx;
-        self.current_code = CODE_SAMPLES[idx].to_string();
+        let (code, output) = CODE_SAMPLES[idx];
+        self.current_code = code.to_string();
         self.current_code_chars = self.current_code.chars().collect();
+        self.expected_output = output.to_string();
         self.user_input.clear();
         self.user_input_chars.clear();
         self.first_input_time = None;

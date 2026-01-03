@@ -28,12 +28,15 @@ const COLOR_SURFACE: Color = Color::Rgb(36, 40, 59);       // Surface
 const COLOR_CURSOR_BG: Color = Color::Rgb(255, 220, 100);  // Bright cursor background
 
 pub fn draw(f: &mut Frame, game_state: &GameState) {
+    // Determine if we should show output (game over and has expected output)
+    let show_output = game_state.game_over && !game_state.expected_output.is_empty();
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(1)
         .constraints([
             Constraint::Length(3),  // Title
-            Constraint::Min(8),     // Code area
+            Constraint::Min(8),     // Code area (includes output when game over)
             Constraint::Length(5),  // Stats
         ])
         .split(f.area());
@@ -75,7 +78,19 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
     // ═══════════════════════════════════════════════════════════════════════
     let code_area_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(5), Constraint::Length(3)])
+        .constraints(if show_output {
+            vec![
+                Constraint::Min(5),     // Code display
+                Constraint::Length(8),  // Output section
+                Constraint::Length(3),  // Progress bar
+            ]
+        } else {
+            vec![
+                Constraint::Min(5),     // Code display
+                Constraint::Length(0),  // No output
+                Constraint::Length(3),  // Progress bar
+            ]
+        })
         .split(chunks[1]);
 
     // Calculate progress for title (with division by zero protection)
@@ -168,7 +183,32 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
         .wrap(Wrap { trim: false });
     f.render_widget(code_display, code_area_chunks[0]);
 
-    // Progress bar with completion celebration
+    // ═══════════════════════════════════════════════════════════════════════
+    // OUTPUT SECTION - Expected output when game is over (above progress bar)
+    // ═══════════════════════════════════════════════════════════════════════
+    if show_output {
+        let output_block = Block::default()
+            .title(Line::from(vec![
+                Span::styled(" 📤 ", Style::default()),
+                Span::styled("Output ", Style::default().fg(COLOR_GREEN).bold()),
+            ]))
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(COLOR_GREEN))
+            .padding(Padding::new(2, 3, 0, 0));
+
+        let output_lines: Vec<Line> = game_state.expected_output
+            .lines()
+            .map(|line| Line::from(Span::styled(line, Style::default().fg(COLOR_WHITE))))
+            .collect();
+
+        let output_display = Paragraph::new(output_lines)
+            .block(output_block)
+            .wrap(Wrap { trim: false });
+        f.render_widget(output_display, code_area_chunks[1]);
+    }
+
+    // Progress bar / completion celebration (at code_area_chunks[2])
     if game_state.game_over {
         // Completion celebration UI
         let rating = if game_state.wpm >= 80.0 && game_state.accuracy >= 98.0 {
@@ -211,13 +251,14 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
         let completion_para = Paragraph::new(completion_text)
             .block(completion_block)
             .alignment(Alignment::Center);
-        f.render_widget(completion_para, code_area_chunks[1]);
+        f.render_widget(completion_para, code_area_chunks[2]);
     } else {
         // Progress bar with percentage and char info in frame title
         let progress_block = Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
             .border_style(Style::default().fg(title_color))
+            .padding(Padding::new(1, 2, 0, 0))
             .title(Line::from(vec![
                 Span::styled(" Progress ", Style::default().fg(COLOR_WHITE).bold()),
                 Span::styled(
@@ -237,12 +278,13 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
             .line_set(symbols::line::THICK)
             .label("")
             .ratio(progress);
-        f.render_widget(progress_gauge, code_area_chunks[1]);
+        f.render_widget(progress_gauge, code_area_chunks[2]);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
     // STATS SECTION - Performance metrics
     // ═══════════════════════════════════════════════════════════════════════
+    let stats_chunk = chunks[2];
     let stats_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -250,7 +292,7 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
             Constraint::Ratio(1, 3),
             Constraint::Ratio(1, 3),
         ])
-        .split(chunks[2]);
+        .split(stats_chunk);
 
     // Calculate elapsed time
     let elapsed = if let Some(first_input) = game_state.first_input_time {
@@ -294,9 +336,9 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
 
     // Controls
     let controls_area = Rect {
-        x: chunks[2].x,
-        y: chunks[2].y + chunks[2].height,
-        width: chunks[2].width,
+        x: stats_chunk.x,
+        y: stats_chunk.y + stats_chunk.height,
+        width: stats_chunk.width,
         height: 1,
     };
 
