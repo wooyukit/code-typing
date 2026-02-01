@@ -1,4 +1,4 @@
-use crossterm::event::{self, Event, KeyCode};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::io;
@@ -32,7 +32,8 @@ impl Game {
 
             if crossterm::event::poll(timeout)? {
                 if let Event::Key(key) = event::read()? {
-                    if !self.handle_input(key.code) {
+                    // Only handle key press events, ignore key release (fixes Windows double input bug)
+                    if key.kind == KeyEventKind::Press && !self.handle_input(key.code) {
                         return Ok(());
                     }
                 }
