@@ -25,7 +25,7 @@ const COLOR_CODE: Color = Color::Rgb(90, 100, 130);        // Untyped code - dim
 const COLOR_GRAY: Color = Color::Rgb(100, 110, 150);       // Muted but visible
 const COLOR_DARK: Color = Color::Rgb(26, 27, 38);          // Dark bg
 const COLOR_SURFACE: Color = Color::Rgb(36, 40, 59);       // Surface
-const COLOR_CURSOR_BG: Color = Color::Rgb(255, 220, 100);  // Bright cursor background
+const COLOR_CURSOR_BG: Color = Color::Rgb(60, 80, 120);    // Soft blue cursor background
 
 pub fn draw(f: &mut Frame, game_state: &GameState) {
     // Determine if we should show output (game over and has expected output)
@@ -156,8 +156,8 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
                         .add_modifier(Modifier::UNDERLINED)
                 }
             } else if char_index == game_state.user_input_chars.len() && !game_state.game_over {
-                // Current cursor position - bright yellow background for high visibility
-                Style::default().fg(COLOR_DARK).bg(COLOR_CURSOR_BG).bold()
+                // Current cursor position - soft blue background with white text
+                Style::default().fg(COLOR_WHITE).bg(COLOR_CURSOR_BG).bold()
             } else {
                 // Untyped code - dimmed
                 Style::default().fg(COLOR_CODE)
@@ -170,7 +170,7 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
         if char_index == game_state.user_input_chars.len() && !game_state.game_over {
             line_spans.push(Span::styled(
                 "↵",
-                Style::default().fg(COLOR_CURSOR_BG).bold().add_modifier(Modifier::SLOW_BLINK),
+                Style::default().fg(COLOR_CYAN).bold().add_modifier(Modifier::SLOW_BLINK),
             ));
         }
 
