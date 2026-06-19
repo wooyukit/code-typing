@@ -1,15 +1,15 @@
 [package]
 name = "code-typing"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 authors = ["Vincent Woo"]
-description = "A terminal-based typing game for Rust programmers. Practice typing real Rust code snippets to improve your coding speed and accuracy."
+description = "A terminal-based typing game for programmers. Practice real code snippets in 10 languages — Rust, Python, JavaScript, TypeScript, Go, Java, Kotlin, Swift, C, and C++ — while tracking WPM and accuracy."
 license = "MIT"
 repository = "https://github.com/wooyukit/code-typing"
 homepage = "https://github.com/wooyukit/code-typing"
 documentation = "https://github.com/wooyukit/code-typing#readme"
 readme = "README.md"
-keywords = ["typing", "game", "terminal", "rust", "practice"]
+keywords = ["typing", "game", "terminal", "programming", "practice"]
 categories = ["command-line-utilities", "games"]
 exclude = ["target/", ".git/", ".gitignore"]
 

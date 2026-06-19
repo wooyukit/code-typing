@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/code-typing.svg)](https://crates.io/crates/code-typing)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**A terminal-based typing game for Rust programmers.** Practice typing real Rust code snippets to build muscle memory for Rust syntax and special characters.
+**A terminal-based typing game for programmers.** Practice typing real code snippets across 10 languages to build muscle memory for the syntax and special characters you actually type.
 
 <p align="center">
   <img src="demo.gif" alt="Code Typing Demo" width="600">
@@ -15,13 +15,13 @@
 
 ## 🤔 Why Code Typing?
 
-Traditional typing tests use regular English text, but Rust programming requires typing special characters like `{}`, `=>`, `::`, `|x|`, `<T>`, and `&mut`. **Code Typing** bridges this gap:
+Traditional typing tests use plain English, but code is full of characters you rarely drill — `{}`, `=>`, `::`, `|x|`, `<T>`, `&mut`, and more. **Code Typing** bridges that gap across 10 languages:
 
-- 🦀 **Rust-focused** — 100 curated Rust code snippets
-- 🎯 **Real patterns** — algorithms, data structures, traits, iterators, and more
-- ⚡ **Real-time feedback** — see correct/incorrect characters instantly
+- 🌐 **10 languages** — 🦀 Rust · 🐍 Python · 🟨 JavaScript · 🟦 TypeScript · 🐹 Go · ☕ Java · 🟪 Kotlin · 🐦 Swift · 🔧 C · ➕ C++
+- 🎯 **Real patterns** — algorithms, data structures, idioms, and more
+- ⚡ **Real-time feedback** — see correct/incorrect characters instantly, with per-language syntax highlighting
 - 📊 **WPM & accuracy tracking** — measure your improvement over time
-- 📤 **Output preview** — see the expected output after completing code with `println!`
+- 📤 **Output preview** — see the expected output after finishing a snippet (where available)
 
 ## 🚀 Installation
 
@@ -45,7 +45,7 @@ cargo install --path .
 code-typing
 ```
 
-That's it! Start typing the code you see on screen. The timer starts on your first keystroke. ⏱️
+That's it! Pick a language from the menu, then start typing the code you see on screen. The timer starts on your first keystroke. ⏱️
 
 ## 🎮 Gameplay
 
@@ -66,13 +66,18 @@ When you complete a snippet:
 
 | Key | Action |
 |-----|--------|
+| `↑` `↓` | 🌐 Open the language menu (before typing or after completing) |
 | `←` `→` | 🔀 Change code sample (before typing starts) |
-| `Tab` | ➡️ Insert 4-space indentation |
+| `Tab` | ➡️ Insert indentation (language-specific width) |
 | `Enter` | ↩️ Auto-indent newline (during typing) / Next snippet (after completing) |
 | `Backspace` | ⬅️ Delete last character |
 | `Esc` | 🔄 Restart current sample (during typing) / 🚪 Quit (before typing or after completing) |
 
-## 📚 Code Samples Include
+## 📚 Languages & Samples
+
+Choose a language from the start menu. Each ships curated snippets — **Rust** has ~100; the others (**Python, JavaScript, TypeScript, Go, Java, Kotlin, Swift, C, C++**) ship a focused starter set that's easy to extend.
+
+The Rust set covers:
 
 - **Algorithms** — QuickSort, Binary Search, Merge Sort, DFS, BFS, Dijkstra
 - **Data Structures** — Linked List, Binary Tree, Stack, Queue, HashMap, BTreeMap, VecDeque
