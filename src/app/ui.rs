@@ -3,31 +3,106 @@ use ratatui::{
     style::{Color, Modifier, Style, Stylize},
     symbols,
     text::{Line, Span},
-    widgets::{Block, Borders, BorderType, Clear, LineGauge, Padding, Paragraph, Wrap},
+    widgets::{Block, BorderType, Borders, Clear, LineGauge, Padding, Paragraph, Wrap},
     Frame,
 };
 use std::time::Instant;
 
-use super::GameState;
+use super::language::ALL;
+use super::state::Screen;
 use super::syntax;
+use super::GameState;
 
 // Color palette
-const COLOR_CYAN: Color = Color::Rgb(125, 207, 255);       // Main/Primary cyan
-const COLOR_GREEN: Color = Color::Rgb(158, 206, 106);      // Success green
-const COLOR_YELLOW: Color = Color::Rgb(224, 175, 104);     // Warning yellow
-const COLOR_RED: Color = Color::Rgb(247, 118, 142);        // Error red
-const COLOR_BLUE: Color = Color::Rgb(122, 162, 247);       // Secondary blue
-const COLOR_GOLD: Color = Color::Rgb(255, 215, 0);         // Gold for code frame
-const COLOR_ORANGE: Color = Color::Rgb(255, 158, 100);     // Orange for rainbow
-const COLOR_PURPLE: Color = Color::Rgb(187, 154, 247);     // Purple for rainbow
-const COLOR_WHITE: Color = Color::Rgb(220, 225, 252);      // Bright text
-const COLOR_CODE: Color = Color::Rgb(90, 100, 130);        // Untyped code - dimmed to contrast with typed text
-const COLOR_GRAY: Color = Color::Rgb(100, 110, 150);       // Muted but visible
-const COLOR_DARK: Color = Color::Rgb(26, 27, 38);          // Dark bg
-const COLOR_SURFACE: Color = Color::Rgb(36, 40, 59);       // Surface
-const COLOR_CURSOR_BG: Color = Color::Rgb(255, 220, 100);  // Bright cursor background
+const COLOR_CYAN: Color = Color::Rgb(125, 207, 255); // Main/Primary cyan
+const COLOR_GREEN: Color = Color::Rgb(158, 206, 106); // Success green
+const COLOR_YELLOW: Color = Color::Rgb(224, 175, 104); // Warning yellow
+const COLOR_RED: Color = Color::Rgb(247, 118, 142); // Error red
+const COLOR_BLUE: Color = Color::Rgb(122, 162, 247); // Secondary blue
+const COLOR_GOLD: Color = Color::Rgb(255, 215, 0); // Gold for code frame
+const COLOR_ORANGE: Color = Color::Rgb(255, 158, 100); // Orange for rainbow
+const COLOR_PURPLE: Color = Color::Rgb(187, 154, 247); // Purple for rainbow
+const COLOR_WHITE: Color = Color::Rgb(220, 225, 252); // Bright text
+const COLOR_CODE: Color = Color::Rgb(90, 100, 130); // Untyped code - dimmed
+const COLOR_GRAY: Color = Color::Rgb(100, 110, 150); // Muted but visible
+const COLOR_DARK: Color = Color::Rgb(26, 27, 38); // Dark bg
+const COLOR_SURFACE: Color = Color::Rgb(36, 40, 59); // Surface
+const COLOR_CURSOR_BG: Color = Color::Rgb(255, 220, 100); // Bright cursor background
 
 pub fn draw(f: &mut Frame, game_state: &GameState) {
+    match game_state.screen {
+        Screen::Menu => draw_menu(f, game_state),
+        Screen::Typing => draw_typing(f, game_state),
+    }
+
+    if game_state.confirm_quit {
+        render_quit_confirmation(f);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MENU SCREEN — language selection
+// ═══════════════════════════════════════════════════════════════════════════
+fn draw_menu(f: &mut Frame, game_state: &GameState) {
+    let area = popup_area(f.area(), 50, 80);
+
+    let block = Block::default()
+        .title(Line::from(vec![
+            Span::styled(" ⌨ ", Style::default().fg(COLOR_GOLD).bold()),
+            Span::styled("code-typing", Style::default().fg(COLOR_CYAN).bold()),
+            Span::styled(" ⌨ ", Style::default().fg(COLOR_GOLD).bold()),
+        ]))
+        .title_alignment(Alignment::Center)
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(COLOR_GOLD))
+        .padding(Padding::new(3, 3, 1, 1));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let mut lines = vec![
+        Line::from(Span::styled(
+            "Select a language to practice",
+            Style::default().fg(COLOR_WHITE).bold(),
+        )),
+        Line::from(""),
+    ];
+
+    for (i, &lang) in ALL.iter().enumerate() {
+        let selected = i == game_state.menu_index;
+        let (marker, name_style) = if selected {
+            ("▸ ", Style::default().fg(COLOR_CYAN).bold())
+        } else {
+            ("  ", Style::default().fg(COLOR_GRAY))
+        };
+        lines.push(Line::from(vec![
+            Span::styled(marker, name_style),
+            Span::styled(format!("{} ", lang.spec().emoji), name_style),
+            Span::styled(format!("{:<12}", lang.name()), name_style),
+            Span::styled(
+                format!("{} snippets", lang.spec().samples.len()),
+                Style::default().fg(COLOR_CODE),
+            ),
+        ]));
+    }
+
+    lines.push(Line::from(""));
+    lines.push(Line::from(vec![
+        Span::styled("↑↓", Style::default().fg(COLOR_CYAN).bold()),
+        Span::styled(" navigate   ", Style::default().fg(COLOR_GRAY)),
+        Span::styled("Enter", Style::default().fg(COLOR_GREEN).bold()),
+        Span::styled(" start   ", Style::default().fg(COLOR_GRAY)),
+        Span::styled("Esc", Style::default().fg(COLOR_RED).bold()),
+        Span::styled(" quit", Style::default().fg(COLOR_GRAY)),
+    ]));
+
+    f.render_widget(Paragraph::new(lines), inner);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TYPING SCREEN
+// ═══════════════════════════════════════════════════════════════════════════
+fn draw_typing(f: &mut Frame, game_state: &GameState) {
     // Determine if we should show output (game over and has expected output)
     let show_output = game_state.game_over && !game_state.expected_output.is_empty();
 
@@ -35,9 +110,9 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
         .direction(Direction::Vertical)
         .margin(1)
         .constraints([
-            Constraint::Length(3),  // Title
-            Constraint::Min(8),     // Code area (includes output when game over)
-            Constraint::Length(5),  // Stats
+            Constraint::Length(3), // Title
+            Constraint::Min(8),    // Code area (includes output when game over)
+            Constraint::Length(5), // Stats
         ])
         .split(f.area());
 
@@ -80,15 +155,15 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
         .direction(Direction::Vertical)
         .constraints(if show_output {
             vec![
-                Constraint::Min(5),     // Code display
-                Constraint::Length(8),  // Output section
-                Constraint::Length(3),  // Progress bar
+                Constraint::Min(5),    // Code display
+                Constraint::Length(8), // Output section
+                Constraint::Length(3), // Progress bar
             ]
         } else {
             vec![
-                Constraint::Min(5),     // Code display
-                Constraint::Length(0),  // No output
-                Constraint::Length(3),  // Progress bar
+                Constraint::Min(5),    // Code display
+                Constraint::Length(0), // No output
+                Constraint::Length(3), // Progress bar
             ]
         })
         .split(chunks[1]);
@@ -97,7 +172,8 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
     let progress = if game_state.current_code_chars.is_empty() {
         0.0
     } else {
-        (game_state.user_input_chars.len() as f64 / game_state.current_code_chars.len() as f64).min(1.0)
+        (game_state.user_input_chars.len() as f64 / game_state.current_code_chars.len() as f64)
+            .min(1.0)
     };
     let percent = (progress * 100.0) as u16;
 
@@ -115,6 +191,15 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
         .title(Line::from(vec![
             Span::styled(" 📝 ", Style::default()),
             Span::styled("Code ", Style::default().fg(title_color).bold()),
+            Span::styled("· ", Style::default().fg(COLOR_GRAY)),
+            Span::styled(
+                format!("{} ", game_state.language.spec().emoji),
+                Style::default(),
+            ),
+            Span::styled(
+                format!("{} ", game_state.language.name()),
+                Style::default().fg(COLOR_WHITE).bold(),
+            ),
         ]))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -128,7 +213,7 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
     let line_num_width = total_lines.to_string().len().max(2);
 
     // Pre-compute syntax highlighting for the entire code
-    let syntax_colors = syntax::highlight(&game_state.current_code);
+    let syntax_colors = syntax::highlight(&game_state.current_code, game_state.language.spec());
 
     for (line_idx, line) in game_state.current_code.lines().enumerate() {
         let mut line_spans = Vec::new();
@@ -144,7 +229,8 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
                 let user_char = game_state.user_input_chars[char_index];
                 if user_char == ch {
                     // Correct - use syntax highlighting color
-                    let syn_color = syntax_colors.get(char_index)
+                    let syn_color = syntax_colors
+                        .get(char_index)
                         .map(|t| t.color())
                         .unwrap_or(COLOR_CODE);
                     Style::default().fg(syn_color)
@@ -170,7 +256,10 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
         if char_index == game_state.user_input_chars.len() && !game_state.game_over {
             line_spans.push(Span::styled(
                 "↵",
-                Style::default().fg(COLOR_CURSOR_BG).bold().add_modifier(Modifier::SLOW_BLINK),
+                Style::default()
+                    .fg(COLOR_CURSOR_BG)
+                    .bold()
+                    .add_modifier(Modifier::SLOW_BLINK),
             ));
         }
 
@@ -197,7 +286,8 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
             .border_style(Style::default().fg(COLOR_GREEN))
             .padding(Padding::new(2, 3, 0, 0));
 
-        let output_lines: Vec<Line> = game_state.expected_output
+        let output_lines: Vec<Line> = game_state
+            .expected_output
             .lines()
             .map(|line| Line::from(Span::styled(line, Style::default().fg(COLOR_WHITE))))
             .collect();
@@ -236,14 +326,28 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
         let secs = (elapsed_secs % 60.0).floor() as u32;
 
         let completion_text = Line::from(vec![
-            Span::styled(format!(" {} ", rating.0), Style::default().fg(rating.1).bold()),
+            Span::styled(
+                format!(" {} ", rating.0),
+                Style::default().fg(rating.1).bold(),
+            ),
             Span::styled(" │ ", Style::default().fg(COLOR_GRAY)),
-            Span::styled(format!("⚡ {:.0} wpm  ", game_state.wpm), Style::default().fg(COLOR_WHITE).bold()),
-            Span::styled(format!("🎯 {:.1}%  ", game_state.accuracy), Style::default().fg(COLOR_WHITE).bold()),
-            Span::styled(format!("⏱ {}:{:02}  ", mins, secs), Style::default().fg(COLOR_WHITE).bold()),
+            Span::styled(
+                format!("⚡ {:.0} wpm  ", game_state.wpm),
+                Style::default().fg(COLOR_WHITE).bold(),
+            ),
+            Span::styled(
+                format!("🎯 {:.1}%  ", game_state.accuracy),
+                Style::default().fg(COLOR_WHITE).bold(),
+            ),
+            Span::styled(
+                format!("⏱ {}:{:02}  ", mins, secs),
+                Style::default().fg(COLOR_WHITE).bold(),
+            ),
             Span::styled("│ ", Style::default().fg(COLOR_GRAY)),
             Span::styled("↵", Style::default().fg(COLOR_CYAN).bold()),
             Span::styled(" next  ", Style::default().fg(COLOR_GRAY)),
+            Span::styled("↑↓", Style::default().fg(COLOR_CYAN).bold()),
+            Span::styled(" language  ", Style::default().fg(COLOR_GRAY)),
             Span::styled("ESC", Style::default().fg(COLOR_RED).bold()),
             Span::styled(" quit ", Style::default().fg(COLOR_GRAY)),
         ]);
@@ -263,11 +367,15 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
                 Span::styled(" Progress ", Style::default().fg(COLOR_WHITE).bold()),
                 Span::styled(
                     format!("{}% ", percent),
-                    Style::default().fg(title_color).bold()
+                    Style::default().fg(title_color).bold(),
                 ),
                 Span::styled(
-                    format!("({}/{}) ", game_state.user_input_chars.len(), game_state.current_code_chars.len()),
-                    Style::default().fg(COLOR_GRAY)
+                    format!(
+                        "({}/{}) ",
+                        game_state.user_input_chars.len(),
+                        game_state.current_code_chars.len()
+                    ),
+                    Style::default().fg(COLOR_GRAY),
                 ),
             ]));
 
@@ -319,7 +427,13 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
     } else {
         COLOR_YELLOW
     };
-    render_stat_card(f, stats_chunks[0], "⚡ WPM", &format!("{:.0}", game_state.wpm), wpm_color);
+    render_stat_card(
+        f,
+        stats_chunks[0],
+        "⚡ WPM",
+        &format!("{:.0}", game_state.wpm),
+        wpm_color,
+    );
 
     // Accuracy Card
     let acc_color = if game_state.accuracy >= 95.0 {
@@ -329,7 +443,13 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
     } else {
         COLOR_RED
     };
-    render_stat_card(f, stats_chunks[1], "🎯 ACC", &format!("{:.1}%", game_state.accuracy), acc_color);
+    render_stat_card(
+        f,
+        stats_chunks[1],
+        "🎯 ACC",
+        &format!("{:.1}%", game_state.accuracy),
+        acc_color,
+    );
 
     // Time Card
     render_stat_card(f, stats_chunks[2], "⏱ TIME", &timer_str, COLOR_CYAN);
@@ -343,18 +463,20 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
     };
 
     let controls_text = if game_state.game_over {
-        // Controls shown in completion bar above, just show minimal hint
         vec![
-            Span::styled("Press ", Style::default().fg(COLOR_GRAY)),
-            Span::styled("ENTER", Style::default().fg(COLOR_CYAN).bold()),
-            Span::styled(" for next sample or ", Style::default().fg(COLOR_GRAY)),
+            Span::styled("↵", Style::default().fg(COLOR_CYAN).bold()),
+            Span::styled(" next  ", Style::default().fg(COLOR_GRAY)),
+            Span::styled("↑↓", Style::default().fg(COLOR_CYAN).bold()),
+            Span::styled(" language  ", Style::default().fg(COLOR_GRAY)),
             Span::styled("ESC", Style::default().fg(COLOR_RED).bold()),
-            Span::styled(" to quit", Style::default().fg(COLOR_GRAY)),
+            Span::styled(" quit", Style::default().fg(COLOR_GRAY)),
         ]
     } else if game_state.first_input_time.is_none() {
         vec![
             Span::styled("◀▶", Style::default().fg(COLOR_CYAN).bold()),
             Span::styled(" sample  ", Style::default().fg(COLOR_GRAY)),
+            Span::styled("↑↓", Style::default().fg(COLOR_CYAN).bold()),
+            Span::styled(" language  ", Style::default().fg(COLOR_GRAY)),
             Span::styled("TAB", Style::default().fg(COLOR_YELLOW).bold()),
             Span::styled(" indent  ", Style::default().fg(COLOR_GRAY)),
             Span::styled("ESC", Style::default().fg(COLOR_RED).bold()),
@@ -375,13 +497,6 @@ pub fn draw(f: &mut Frame, game_state: &GameState) {
 
     let controls = Paragraph::new(Line::from(controls_text)).alignment(Alignment::Center);
     f.render_widget(controls, controls_area);
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // POPUPS
-    // ═══════════════════════════════════════════════════════════════════════
-    if game_state.confirm_quit {
-        render_quit_confirmation(f);
-    }
 }
 
 /// Calculate a centered popup area
@@ -423,9 +538,10 @@ fn render_quit_confirmation(f: &mut Frame) {
         ])
         .split(inner);
 
-    let message = Paragraph::new(Line::from(vec![
-        Span::styled("Are you sure?", Style::default().fg(COLOR_WHITE)),
-    ]))
+    let message = Paragraph::new(Line::from(vec![Span::styled(
+        "Are you sure?",
+        Style::default().fg(COLOR_WHITE),
+    )]))
     .alignment(Alignment::Center);
     f.render_widget(message, content_chunks[0]);
 
@@ -455,10 +571,72 @@ fn render_stat_card(f: &mut Frame, area: Rect, title: &str, value: &str, color: 
     let value_widget = Paragraph::new(value_line).alignment(Alignment::Center);
 
     if inner.height >= 2 {
-        let title_area = Rect { x: inner.x, y: inner.y, width: inner.width, height: 1 };
-        let value_area = Rect { x: inner.x, y: inner.y + 1, width: inner.width, height: 1 };
+        let title_area = Rect {
+            x: inner.x,
+            y: inner.y,
+            width: inner.width,
+            height: 1,
+        };
+        let value_area = Rect {
+            x: inner.x,
+            y: inner.y + 1,
+            width: inner.width,
+            height: 1,
+        };
         f.render_widget(title_widget, title_area);
         f.render_widget(value_widget, value_area);
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::language::ALL;
+    use ratatui::backend::TestBackend;
+    use ratatui::Terminal;
+
+    /// Render a frame headlessly and return its text content (all cell symbols).
+    fn render(game_state: &GameState, w: u16, h: u16) -> String {
+        let mut terminal = Terminal::new(TestBackend::new(w, h)).unwrap();
+        terminal.draw(|f| draw(f, game_state)).unwrap();
+        terminal
+            .backend()
+            .buffer()
+            .content
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect()
+    }
+
+    #[test]
+    fn menu_screen_renders_language_list() {
+        let out = render(&GameState::new(), 80, 30);
+        assert!(out.contains("code-typing"));
+        assert!(out.contains("Rust"));
+        assert!(out.contains("Python"));
+        assert!(out.contains("C++"));
+        assert!(out.contains("🦀")); // language emoji rendered
+    }
+
+    /// Drawing must not panic for any language, fresh or completed (the latter
+    /// exercises the output panel + rating). This walks the char-index render loop.
+    #[test]
+    fn typing_and_completion_render_for_every_language() {
+        for (i, _) in ALL.iter().enumerate() {
+            let mut gs = GameState::new();
+            gs.menu_index = i;
+            gs.select_menu_language();
+            let _ = render(&gs, 80, 30);
+            gs.finish_game();
+            let _ = render(&gs, 80, 30);
+        }
+    }
+
+    #[test]
+    fn renders_in_a_small_terminal_without_panicking() {
+        let _ = render(&GameState::new(), 40, 12);
+        let mut gs = GameState::new();
+        gs.select_menu_language();
+        let _ = render(&gs, 40, 12);
+    }
+}

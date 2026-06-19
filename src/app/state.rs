@@ -1,14 +1,27 @@
-use std::time::Instant;
-use super::samples::CODE_SAMPLES;
 use rand::Rng;
+use std::time::Instant;
+
+use super::language::{Language, ALL};
+
+/// Which screen the app is showing.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Screen {
+    /// Language selection menu (shown at launch).
+    Menu,
+    /// The typing screen.
+    Typing,
+}
 
 #[derive(Clone)]
 pub struct GameState {
+    pub screen: Screen,
+    pub menu_index: usize, // highlighted language in the menu
+    pub language: Language,
     pub current_code: String,
-    pub current_code_chars: Vec<char>,  // Pre-computed for O(1) access
-    pub expected_output: String,        // Expected output when code is run
+    pub current_code_chars: Vec<char>, // Pre-computed for O(1) access
+    pub expected_output: String,       // Expected output when code is run
     pub user_input: String,
-    pub user_input_chars: Vec<char>,    // Pre-computed for O(1) access
+    pub user_input_chars: Vec<char>, // Pre-computed for O(1) access
     pub first_input_time: Option<Instant>,
     pub end_time: Option<Instant>,
     pub correct_chars: usize,
@@ -16,18 +29,18 @@ pub struct GameState {
     pub accuracy: f32,
     pub game_over: bool,
     pub confirm_quit: bool,
-    current_sample_idx: usize,  // Track current sample to avoid repeat
+    current_sample_idx: usize, // Track current sample to avoid repeat
 }
 
 impl GameState {
     pub fn new() -> Self {
-        let idx = rand::thread_rng().gen_range(0..CODE_SAMPLES.len());
-        let (code, output) = CODE_SAMPLES[idx];
-        let code_chars = code.chars().collect();
-        GameState {
-            current_code: code.to_string(),
-            current_code_chars: code_chars,
-            expected_output: output.to_string(),
+        let mut state = GameState {
+            screen: Screen::Menu,
+            menu_index: 0,
+            language: ALL[0],
+            current_code: String::new(),
+            current_code_chars: Vec::new(),
+            expected_output: String::new(),
             user_input: String::new(),
             user_input_chars: Vec::new(),
             first_input_time: None,
@@ -37,26 +50,73 @@ impl GameState {
             accuracy: 0.0,
             game_over: false,
             confirm_quit: false,
-            current_sample_idx: idx,
-        }
+            current_sample_idx: usize::MAX, // sentinel: allow any first sample
+        };
+        state.load_random_sample();
+        state
     }
 
-    /// Switch to a random code sample (only works before typing starts)
-    /// Ensures a different sample is selected
-    pub fn random_sample(&mut self) {
-        if self.first_input_time.is_none() && CODE_SAMPLES.len() > 1 {
-            let mut idx = rand::thread_rng().gen_range(0..CODE_SAMPLES.len());
-            // Ensure we pick a different sample
+    /// Samples for the currently selected language.
+    fn samples(&self) -> &'static [(&'static str, &'static str)] {
+        self.language.spec().samples
+    }
+
+    // ── Menu navigation ──────────────────────────────────────────────────────
+
+    pub fn menu_up(&mut self) {
+        self.menu_index = if self.menu_index == 0 {
+            ALL.len() - 1
+        } else {
+            self.menu_index - 1
+        };
+    }
+
+    pub fn menu_down(&mut self) {
+        self.menu_index = (self.menu_index + 1) % ALL.len();
+    }
+
+    /// Open the language menu, positioning the cursor on the current language.
+    pub fn open_menu(&mut self) {
+        self.menu_index = ALL.iter().position(|&l| l == self.language).unwrap_or(0);
+        self.screen = Screen::Menu;
+    }
+
+    /// Confirm the menu selection: switch language and start a fresh sample.
+    pub fn select_menu_language(&mut self) {
+        self.language = ALL[self.menu_index];
+        self.current_sample_idx = usize::MAX; // allow any first sample for the new language
+        self.screen = Screen::Typing;
+        self.load_random_sample();
+    }
+
+    // ── Sample loading ─────────────────────────────────────────────────────────
+
+    /// Load a specific sample within the current language and reset typing progress.
+    fn load_sample(&mut self, idx: usize) {
+        let (code, output) = self.samples()[idx];
+        self.current_sample_idx = idx;
+        self.current_code = code.to_string();
+        self.current_code_chars = self.current_code.chars().collect();
+        self.expected_output = output.to_string();
+        self.reset_progress();
+    }
+
+    /// Pick a random sample in the current language, avoiding an immediate repeat.
+    fn load_random_sample(&mut self) {
+        let len = self.samples().len();
+        let mut idx = rand::thread_rng().gen_range(0..len);
+        if len > 1 {
             while idx == self.current_sample_idx {
-                idx = rand::thread_rng().gen_range(0..CODE_SAMPLES.len());
+                idx = rand::thread_rng().gen_range(0..len);
             }
-            self.current_sample_idx = idx;
-            let (code, output) = CODE_SAMPLES[idx];
-            self.current_code = code.to_string();
-            self.current_code_chars = self.current_code.chars().collect();
-            self.expected_output = output.to_string();
-            self.user_input.clear();
-            self.user_input_chars.clear();
+        }
+        self.load_sample(idx);
+    }
+
+    /// Switch to a random code sample (only works before typing starts).
+    pub fn random_sample(&mut self) {
+        if self.first_input_time.is_none() && self.samples().len() > 1 {
+            self.load_random_sample();
         }
     }
 
@@ -70,19 +130,18 @@ impl GameState {
             self.first_input_time = Some(Instant::now());
         }
 
-        // Convert tab to 4 spaces to match indentation in code samples
-        // For Enter, auto-indent by looking at what the next line's indentation should be
+        // Convert tab to the language's indent width to match the code samples.
+        // For Enter, auto-indent by matching the next line's leading whitespace.
         let chars_to_add: Vec<char> = if c == '\t' {
-            vec![' ', ' ', ' ', ' '] // 4 spaces
+            vec![' '; self.language.spec().indent_spaces]
         } else if c == '\n' {
-            // Auto-indent: add newline plus the leading whitespace of the next line
             self.get_auto_indent_chars().chars().collect()
         } else {
             vec![c]
         };
 
-        // For auto-indent (Enter), count as 1 keystroke and check if ALL chars are correct
-        // For other inputs, count each character
+        // For auto-indent (Enter), count as 1 keystroke and check if ALL chars are correct.
+        // For other inputs, count each character.
         let is_auto_indent = c == '\n' && chars_to_add.len() > 1;
 
         if is_auto_indent {
@@ -90,10 +149,10 @@ impl GameState {
             let mut all_correct = true;
             for (i, &ch) in chars_to_add.iter().enumerate() {
                 let target_pos = self.user_input_chars.len() + i;
-                if target_pos < self.current_code_chars.len() {
-                    if ch != self.current_code_chars[target_pos] {
-                        all_correct = false;
-                    }
+                if target_pos < self.current_code_chars.len()
+                    && ch != self.current_code_chars[target_pos]
+                {
+                    all_correct = false;
                 }
             }
 
@@ -121,10 +180,8 @@ impl GameState {
                 self.user_input_chars.push(ch);
 
                 let pos = self.user_input_chars.len() - 1;
-                if pos < self.current_code_chars.len() {
-                    if ch == self.current_code_chars[pos] {
-                        self.correct_chars += 1;
-                    }
+                if pos < self.current_code_chars.len() && ch == self.current_code_chars[pos] {
+                    self.correct_chars += 1;
                 }
 
                 if self.user_input_chars.len() >= self.current_code_chars.len() {
@@ -143,7 +200,9 @@ impl GameState {
         let current_pos = self.user_input_chars.len();
 
         // Check if the next character in target code is a newline (O(1) access)
-        if current_pos < self.current_code_chars.len() && self.current_code_chars[current_pos] == '\n' {
+        if current_pos < self.current_code_chars.len()
+            && self.current_code_chars[current_pos] == '\n'
+        {
             let mut result = String::from("\n");
 
             // Look at characters after the newline and collect leading whitespace
@@ -174,12 +233,15 @@ impl GameState {
     }
 
     pub fn update_stats(&mut self) {
-        let elapsed_secs = self.first_input_time
+        let elapsed_secs = self
+            .first_input_time
             .map(|t| t.elapsed().as_secs_f32())
             .unwrap_or(0.0);
 
         // Recalculate correct_chars to ensure consistency
-        self.correct_chars = self.user_input_chars.iter()
+        self.correct_chars = self
+            .user_input_chars
+            .iter()
             .zip(self.current_code_chars.iter())
             .filter(|(a, b)| a == b)
             .count();
@@ -199,32 +261,18 @@ impl GameState {
         self.update_stats();
     }
 
+    /// Move to a new random sample in the current language (used after completion).
     pub fn reset(&mut self) {
-        // Ensure we pick a different sample
-        let mut idx = rand::thread_rng().gen_range(0..CODE_SAMPLES.len());
-        if CODE_SAMPLES.len() > 1 {
-            while idx == self.current_sample_idx {
-                idx = rand::thread_rng().gen_range(0..CODE_SAMPLES.len());
-            }
-        }
-        self.current_sample_idx = idx;
-        let (code, output) = CODE_SAMPLES[idx];
-        self.current_code = code.to_string();
-        self.current_code_chars = self.current_code.chars().collect();
-        self.expected_output = output.to_string();
-        self.user_input.clear();
-        self.user_input_chars.clear();
-        self.first_input_time = None;
-        self.end_time = None;
-        self.correct_chars = 0;
-        self.wpm = 0.0;
-        self.accuracy = 0.0;
-        self.game_over = false;
-        self.confirm_quit = false;
+        self.load_random_sample();
     }
 
-    /// Restart the current sample (keep same code, reset progress)
+    /// Restart the current sample (keep same code, reset progress).
     pub fn restart_current(&mut self) {
+        self.reset_progress();
+    }
+
+    /// Clear typing progress and stats while keeping the current code + language.
+    fn reset_progress(&mut self) {
         self.user_input.clear();
         self.user_input_chars.clear();
         self.first_input_time = None;
@@ -240,5 +288,49 @@ impl GameState {
 impl Default for GameState {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn starts_in_menu_with_a_loaded_sample() {
+        let gs = GameState::new();
+        assert_eq!(gs.screen, Screen::Menu);
+        assert!(!gs.current_code.is_empty());
+        // The String and the pre-computed Vec<char> must stay in lockstep.
+        assert_eq!(gs.current_code_chars.len(), gs.current_code.chars().count());
+    }
+
+    #[test]
+    fn selecting_a_language_enters_typing() {
+        let mut gs = GameState::new();
+        gs.menu_index = ALL.iter().position(|&l| l == Language::Python).unwrap();
+        gs.select_menu_language();
+        assert_eq!(gs.screen, Screen::Typing);
+        assert_eq!(gs.language, Language::Python);
+        assert!(!gs.current_code.is_empty());
+    }
+
+    #[test]
+    fn tab_expands_to_the_language_indent_width() {
+        let mut gs = GameState::new();
+        gs.select_menu_language(); // Rust (menu_index 0)
+        let width = gs.language.spec().indent_spaces;
+        gs.handle_input('\t');
+        assert_eq!(gs.user_input_chars.len(), width);
+        assert!(gs.user_input_chars.iter().all(|&c| c == ' '));
+    }
+
+    #[test]
+    fn menu_navigation_wraps() {
+        let mut gs = GameState::new();
+        gs.menu_index = 0;
+        gs.menu_up();
+        assert_eq!(gs.menu_index, ALL.len() - 1);
+        gs.menu_down();
+        assert_eq!(gs.menu_index, 0);
     }
 }
