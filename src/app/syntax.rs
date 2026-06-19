@@ -1,41 +1,22 @@
 use ratatui::style::Color;
 
+use super::language::{LanguageSpec, SingleQuote};
+
 // Syntax highlighting colors (GitHub Dark theme)
-pub const SYN_KEYWORD: Color = Color::Rgb(255, 123, 114);    // #ff7b72 - red/coral - keywords
-pub const SYN_TYPE: Color = Color::Rgb(255, 166, 87);        // #ffa657 - orange - types
-pub const SYN_FUNCTION: Color = Color::Rgb(210, 168, 255);   // #d2a8ff - purple/lavender - functions
-pub const SYN_STRING: Color = Color::Rgb(165, 214, 255);     // #a5d6ff - light blue - strings
-pub const SYN_NUMBER: Color = Color::Rgb(121, 192, 255);     // #79c0ff - blue - numbers
-pub const SYN_COMMENT: Color = Color::Rgb(139, 148, 158);    // #8b949e - gray - comments
-pub const SYN_MACRO: Color = Color::Rgb(121, 192, 255);      // #79c0ff - blue - macros
-pub const SYN_LIFETIME: Color = Color::Rgb(255, 123, 114);   // #ff7b72 - red/coral - lifetimes
-pub const SYN_ATTRIBUTE: Color = Color::Rgb(139, 148, 158);  // #8b949e - gray - attributes
-pub const SYN_OPERATOR: Color = Color::Rgb(201, 209, 217);   // #c9d1d9 - light gray - operators
-pub const SYN_NORMAL: Color = Color::Rgb(201, 209, 217);     // #c9d1d9 - light gray - normal text
-
-const KEYWORDS: &[&str] = &[
-    "fn", "let", "mut", "if", "else", "match", "struct", "enum", "impl", "pub",
-    "use", "mod", "crate", "super", "self", "Self", "for", "while", "loop",
-    "return", "break", "continue", "where", "trait", "type", "const", "static",
-    "unsafe", "async", "await", "move", "ref", "in", "as", "dyn", "true", "false",
-    "Some", "None", "Ok", "Err",
-];
-
-const TYPES: &[&str] = &[
-    "i8", "i16", "i32", "i64", "i128", "isize",
-    "u8", "u16", "u32", "u64", "u128", "usize",
-    "f32", "f64", "bool", "char", "str",
-    "String", "Vec", "Option", "Result", "Box", "Rc", "Arc", "RefCell", "Cell",
-    "HashMap", "HashSet", "BTreeMap", "BTreeSet", "VecDeque", "LinkedList",
-    "Mutex", "RwLock", "Cow", "Pin", "PhantomData",
-    "Iterator", "IntoIterator", "FromIterator", "Ord", "PartialOrd", "Eq", "PartialEq",
-    "Clone", "Copy", "Default", "Debug", "Display", "Hash", "Send", "Sync",
-    "From", "Into", "AsRef", "AsMut", "Deref", "DerefMut", "Drop", "Fn", "FnMut", "FnOnce",
-    "Add", "Sub", "Mul", "Div", "Index", "IndexMut",
-];
+pub const SYN_KEYWORD: Color = Color::Rgb(255, 123, 114); // #ff7b72 - red/coral - keywords
+pub const SYN_TYPE: Color = Color::Rgb(255, 166, 87); // #ffa657 - orange - types
+pub const SYN_FUNCTION: Color = Color::Rgb(210, 168, 255); // #d2a8ff - purple/lavender - functions
+pub const SYN_STRING: Color = Color::Rgb(165, 214, 255); // #a5d6ff - light blue - strings
+pub const SYN_NUMBER: Color = Color::Rgb(121, 192, 255); // #79c0ff - blue - numbers
+pub const SYN_COMMENT: Color = Color::Rgb(139, 148, 158); // #8b949e - gray - comments
+pub const SYN_MACRO: Color = Color::Rgb(121, 192, 255); // #79c0ff - blue - macros
+pub const SYN_LIFETIME: Color = Color::Rgb(255, 123, 114); // #ff7b72 - red/coral - lifetimes
+pub const SYN_ATTRIBUTE: Color = Color::Rgb(139, 148, 158); // #8b949e - gray - attributes
+pub const SYN_OPERATOR: Color = Color::Rgb(201, 209, 217); // #c9d1d9 - light gray - operators
+pub const SYN_NORMAL: Color = Color::Rgb(201, 209, 217); // #c9d1d9 - light gray - normal text
 
 /// Token types for syntax highlighting
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum TokenType {
     Keyword,
     Type,
@@ -68,52 +49,55 @@ impl TokenType {
     }
 }
 
-/// Compute syntax highlighting for each character position in the code
-pub fn highlight(code: &str) -> Vec<TokenType> {
+/// Compute syntax highlighting for each character position in `code`, using the
+/// rules described by `spec`. Returns one `TokenType` per character so the result
+/// aligns index-for-index with the code's `Vec<char>`.
+pub fn highlight(code: &str, spec: &LanguageSpec) -> Vec<TokenType> {
     let chars: Vec<char> = code.chars().collect();
-    let mut result = vec![TokenType::Normal; chars.len()];
+    let n = chars.len();
+    let mut result = vec![TokenType::Normal; n];
     let mut i = 0;
 
-    while i < chars.len() {
-        let remaining = &code[char_index_to_byte_index(code, i)..];
+    while i < n {
+        let c = chars[i];
 
-        // Skip whitespace
-        if chars[i].is_whitespace() {
+        // Whitespace
+        if c.is_whitespace() {
             i += 1;
             continue;
         }
 
         // Line comments
-        if remaining.starts_with("//") {
+        if !spec.line_comment.is_empty() && matches_at(&chars, i, spec.line_comment) {
             let start = i;
-            while i < chars.len() && chars[i] != '\n' {
+            while i < n && chars[i] != '\n' {
                 i += 1;
             }
-            for j in start..i {
-                result[j] = TokenType::Comment;
-            }
+            fill(&mut result, start, i, TokenType::Comment);
             continue;
         }
 
         // Block comments
-        if remaining.starts_with("/*") {
-            let start = i;
-            i += 2;
-            while i + 1 < chars.len() && !(chars[i] == '*' && chars[i + 1] == '/') {
-                i += 1;
+        if let Some((open, close)) = spec.block_comment {
+            if matches_at(&chars, i, open) {
+                let start = i;
+                i += open.chars().count();
+                while i < n && !matches_at(&chars, i, close) {
+                    i += 1;
+                }
+                if i < n {
+                    i += close.chars().count();
+                }
+                fill(&mut result, start, i.min(n), TokenType::Comment);
+                continue;
             }
-            i += 2; // skip */
-            for j in start..i.min(chars.len()) {
-                result[j] = TokenType::Comment;
-            }
-            continue;
         }
 
-        // Attributes (#[...])
-        if chars[i] == '#' && i + 1 < chars.len() && chars[i + 1] == '[' {
+        // Rust attributes (#[...])
+        if spec.rust_attributes && c == '#' && i + 1 < n && chars[i + 1] == '[' {
             let start = i;
             let mut depth = 0;
-            while i < chars.len() {
+            while i < n {
                 if chars[i] == '[' {
                     depth += 1;
                 } else if chars[i] == ']' {
@@ -125,164 +109,159 @@ pub fn highlight(code: &str) -> Vec<TokenType> {
                 }
                 i += 1;
             }
-            for j in start..i.min(chars.len()) {
-                result[j] = TokenType::Attribute;
-            }
+            fill(&mut result, start, i.min(n), TokenType::Attribute);
             continue;
         }
 
-        // Strings
-        if chars[i] == '"' {
+        // C/C++ preprocessor directives (#include, #define, ...)
+        if spec.preprocessor && c == '#' {
             let start = i;
-            i += 1;
-            while i < chars.len() && chars[i] != '"' {
-                if chars[i] == '\\' && i + 1 < chars.len() {
-                    i += 1; // skip escape
-                }
+            i += 1; // '#'
+            while i < n && (chars[i] == ' ' || chars[i] == '\t') {
                 i += 1;
             }
-            i += 1; // skip closing quote
-            for j in start..i.min(chars.len()) {
-                result[j] = TokenType::String;
+            while i < n && (chars[i].is_alphanumeric() || chars[i] == '_') {
+                i += 1;
             }
+            fill(&mut result, start, i, TokenType::Macro);
             continue;
         }
 
-        // Char literals
-        if chars[i] == '\'' && i + 1 < chars.len() {
-            // Check if it's a lifetime or char literal
-            let maybe_lifetime = i + 1 < chars.len() &&
-                (chars[i + 1].is_alphabetic() || chars[i + 1] == '_');
+        // Decorators / annotations (@Override, @decorator)
+        if spec.decorators
+            && c == '@'
+            && i + 1 < n
+            && (chars[i + 1].is_alphabetic() || chars[i + 1] == '_')
+        {
+            let start = i;
+            i += 1; // '@'
+            while i < n && (chars[i].is_alphanumeric() || chars[i] == '_' || chars[i] == '.') {
+                i += 1;
+            }
+            fill(&mut result, start, i, TokenType::Attribute);
+            continue;
+        }
 
-            if maybe_lifetime {
-                // Look ahead to see if it's a lifetime (no closing quote nearby)
-                let mut j = i + 1;
-                while j < chars.len() && (chars[j].is_alphanumeric() || chars[j] == '_') {
-                    j += 1;
-                }
-                // If next char after identifier is not a quote, it's a lifetime
-                if j < chars.len() && chars[j] != '\'' {
-                    // It's a lifetime
-                    let start = i;
-                    for k in start..j {
-                        result[k] = TokenType::Lifetime;
+        // Double-quoted strings
+        if c == '"' {
+            i = scan_string(&chars, i, '"', &mut result);
+            continue;
+        }
+
+        // Backtick template strings (JS/TS)
+        if spec.backtick_string && c == '`' {
+            i = scan_string(&chars, i, '`', &mut result);
+            continue;
+        }
+
+        // Single quotes: lifetime, char literal, or string depending on language
+        if c == '\'' {
+            if spec.lifetimes {
+                // Rust: distinguish a lifetime from a char literal
+                let maybe_lifetime =
+                    i + 1 < n && (chars[i + 1].is_alphabetic() || chars[i + 1] == '_');
+                if maybe_lifetime {
+                    let mut j = i + 1;
+                    while j < n && (chars[j].is_alphanumeric() || chars[j] == '_') {
+                        j += 1;
                     }
-                    i = j;
-                    continue;
+                    // If the identifier is not closed by a quote, it's a lifetime
+                    if j < n && chars[j] != '\'' {
+                        fill(&mut result, i, j, TokenType::Lifetime);
+                        i = j;
+                        continue;
+                    }
                 }
+                i = scan_char_literal(&chars, i, &mut result);
+                continue;
             }
-
-            // It's a char literal
-            let start = i;
-            i += 1;
-            if i < chars.len() && chars[i] == '\\' {
-                i += 2; // escape sequence
-            } else if i < chars.len() {
-                i += 1;
-            }
-            if i < chars.len() && chars[i] == '\'' {
-                i += 1;
-            }
-            for j in start..i.min(chars.len()) {
-                result[j] = TokenType::String;
+            match spec.single_quote {
+                SingleQuote::Char => {
+                    i = scan_char_literal(&chars, i, &mut result);
+                }
+                SingleQuote::Str => {
+                    i = scan_string(&chars, i, '\'', &mut result);
+                }
+                SingleQuote::None => {
+                    result[i] = TokenType::Operator;
+                    i += 1;
+                }
             }
             continue;
         }
 
-        // Numbers
-        if chars[i].is_ascii_digit() || (chars[i] == '.' && i + 1 < chars.len() && chars[i + 1].is_ascii_digit()) {
+        // Numbers (incl. hex/octal/binary prefixes)
+        if c.is_ascii_digit() || (c == '.' && i + 1 < n && chars[i + 1].is_ascii_digit()) {
             let start = i;
-            // Handle hex, octal, binary
-            if chars[i] == '0' && i + 1 < chars.len() {
-                if chars[i + 1] == 'x' || chars[i + 1] == 'o' || chars[i + 1] == 'b' {
-                    i += 2;
-                }
+            if c == '0' && i + 1 < n && matches!(chars[i + 1], 'x' | 'X' | 'o' | 'O' | 'b' | 'B') {
+                i += 2;
             }
-            while i < chars.len() && (chars[i].is_ascii_alphanumeric() || chars[i] == '.' || chars[i] == '_') {
+            while i < n && (chars[i].is_ascii_alphanumeric() || chars[i] == '.' || chars[i] == '_')
+            {
                 i += 1;
             }
-            for j in start..i {
-                result[j] = TokenType::Number;
-            }
+            fill(&mut result, start, i, TokenType::Number);
             continue;
         }
 
-        // Macros (identifier followed by !)
-        if chars[i].is_alphabetic() || chars[i] == '_' {
+        // Identifiers: macros, keywords, types, functions, or plain identifiers
+        if c.is_alphabetic() || c == '_' {
             let start = i;
-            while i < chars.len() && (chars[i].is_alphanumeric() || chars[i] == '_') {
+            while i < n && (chars[i].is_alphanumeric() || chars[i] == '_') {
                 i += 1;
             }
             let word: String = chars[start..i].iter().collect();
 
-            // Check if it's a macro (followed by !)
-            if i < chars.len() && chars[i] == '!' {
-                for j in start..=i {
-                    result[j] = TokenType::Macro;
-                }
+            // Rust macro invocation: ident!
+            if spec.macros && i < n && chars[i] == '!' {
+                fill(&mut result, start, i + 1, TokenType::Macro);
                 i += 1;
                 continue;
             }
 
-            // Check if it's a keyword
-            if KEYWORDS.contains(&word.as_str()) {
-                for j in start..i {
-                    result[j] = TokenType::Keyword;
-                }
+            if spec.keywords.contains(&word.as_str()) {
+                fill(&mut result, start, i, TokenType::Keyword);
                 continue;
             }
 
-            // Check if it's a type (starts with uppercase or is a known type)
-            if TYPES.contains(&word.as_str()) || (word.chars().next().map(|c| c.is_uppercase()).unwrap_or(false) && word != "Some" && word != "None" && word != "Ok" && word != "Err") {
-                for j in start..i {
-                    result[j] = TokenType::Type;
-                }
+            // A type is a known type name or any uppercase-initial identifier
+            let is_type = spec.types.contains(&word.as_str())
+                || word
+                    .chars()
+                    .next()
+                    .map(|ch| ch.is_uppercase())
+                    .unwrap_or(false);
+            if is_type {
+                fill(&mut result, start, i, TokenType::Type);
                 continue;
             }
 
-            // Check if it's a function (followed by '(' or preceded by 'fn ')
-            // Skip whitespace to check for (
+            // Function: identifier followed by '(' (skipping spaces)
             let mut k = i;
-            while k < chars.len() && chars[k] == ' ' {
+            while k < n && chars[k] == ' ' {
                 k += 1;
             }
-            if k < chars.len() && chars[k] == '(' {
-                for j in start..i {
-                    result[j] = TokenType::Function;
-                }
+            if k < n && chars[k] == '(' {
+                fill(&mut result, start, i, TokenType::Function);
                 continue;
             }
 
-            // Check if preceded by "fn " or "::" (method call)
-            if start >= 2 {
-                let prev: String = chars[start.saturating_sub(3)..start].iter().collect();
-                if prev.ends_with("fn ") {
-                    for j in start..i {
-                        result[j] = TokenType::Function;
-                    }
-                    continue;
-                }
-            }
+            // After a `::` path separator: function if it precedes '(', else a type
             if start >= 2 && chars[start - 1] == ':' && chars[start - 2] == ':' {
-                // After ::, could be function or type
-                if k < chars.len() && chars[k] == '(' {
-                    for j in start..i {
-                        result[j] = TokenType::Function;
-                    }
+                if k < n && chars[k] == '(' {
+                    fill(&mut result, start, i, TokenType::Function);
                 } else {
-                    for j in start..i {
-                        result[j] = TokenType::Type;
-                    }
+                    fill(&mut result, start, i, TokenType::Type);
                 }
                 continue;
             }
 
-            // It's a normal identifier
+            // Plain identifier
             continue;
         }
 
         // Operators and punctuation
-        if is_operator(chars[i]) {
+        if is_operator(c) {
             result[i] = TokenType::Operator;
             i += 1;
             continue;
@@ -294,13 +273,145 @@ pub fn highlight(code: &str) -> Vec<TokenType> {
     result
 }
 
-fn char_index_to_byte_index(s: &str, char_idx: usize) -> usize {
-    s.char_indices()
-        .nth(char_idx)
-        .map(|(i, _)| i)
-        .unwrap_or(s.len())
+/// Set `result[start..end]` to `t`.
+fn fill(result: &mut [TokenType], start: usize, end: usize, t: TokenType) {
+    for slot in &mut result[start..end] {
+        *slot = t;
+    }
+}
+
+/// True if `chars` starting at `i` matches the (ASCII) pattern `pat`.
+fn matches_at(chars: &[char], i: usize, pat: &str) -> bool {
+    let mut k = i;
+    for pc in pat.chars() {
+        if k >= chars.len() || chars[k] != pc {
+            return false;
+        }
+        k += 1;
+    }
+    true
+}
+
+/// Color a string literal opening at `i` with delimiter `quote`; returns the index
+/// just past the closing delimiter (handling backslash escapes).
+fn scan_string(chars: &[char], i: usize, quote: char, result: &mut [TokenType]) -> usize {
+    let n = chars.len();
+    let mut j = i + 1;
+    while j < n && chars[j] != quote {
+        if chars[j] == '\\' && j + 1 < n {
+            j += 1; // skip the escaped character
+        }
+        j += 1;
+    }
+    if j < n {
+        j += 1; // closing delimiter
+    }
+    let end = j.min(n);
+    fill(result, i, end, TokenType::String);
+    end
+}
+
+/// Color a char literal opening at `i`; returns the index just past the close.
+fn scan_char_literal(chars: &[char], i: usize, result: &mut [TokenType]) -> usize {
+    let n = chars.len();
+    let mut j = i + 1;
+    if j < n && chars[j] == '\\' {
+        j += 2; // escape sequence, e.g. '\n'
+    } else if j < n {
+        j += 1;
+    }
+    if j < n && chars[j] == '\'' {
+        j += 1;
+    }
+    let end = j.min(n);
+    fill(result, i, end, TokenType::String);
+    end
 }
 
 fn is_operator(c: char) -> bool {
-    matches!(c, '+' | '-' | '*' | '/' | '%' | '=' | '<' | '>' | '!' | '&' | '|' | '^' | '~' | '?' | ':' | ';' | ',' | '.' | '@' | '#' | '$' | '(' | ')' | '[' | ']' | '{' | '}')
+    matches!(
+        c,
+        '+' | '-'
+            | '*'
+            | '/'
+            | '%'
+            | '='
+            | '<'
+            | '>'
+            | '!'
+            | '&'
+            | '|'
+            | '^'
+            | '~'
+            | '?'
+            | ':'
+            | ';'
+            | ','
+            | '.'
+            | '@'
+            | '#'
+            | '$'
+            | '('
+            | ')'
+            | '['
+            | ']'
+            | '{'
+            | '}'
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::language::{Language, ALL};
+
+    /// The highlighter must emit exactly one token per character for every sample
+    /// in every language — this is what keeps coloring aligned with the cursor.
+    #[test]
+    fn one_token_per_char_for_all_samples() {
+        for &lang in ALL {
+            let spec = lang.spec();
+            for (code, _) in spec.samples {
+                let tokens = highlight(code, spec);
+                assert_eq!(
+                    tokens.len(),
+                    code.chars().count(),
+                    "token/char misalignment in {}",
+                    lang.name()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn rust_keyword_function_and_comment() {
+        let code = "fn main() {} // hi";
+        let tokens = highlight(code, Language::Rust.spec());
+        assert_eq!(tokens[0], TokenType::Keyword); // 'fn'
+        assert_eq!(tokens[code.find("main").unwrap()], TokenType::Function);
+        assert_eq!(tokens[code.find("//").unwrap()], TokenType::Comment);
+    }
+
+    #[test]
+    fn rust_macro_and_string() {
+        let code = "println!(\"hi\");";
+        let tokens = highlight(code, Language::Rust.spec());
+        assert_eq!(tokens[0], TokenType::Macro);
+        assert_eq!(tokens[code.find('"').unwrap()], TokenType::String);
+    }
+
+    #[test]
+    fn python_hash_comment_is_not_rust_attribute() {
+        let code = "def f():\n    # note\n    pass";
+        let tokens = highlight(code, Language::Python.spec());
+        assert_eq!(tokens[0], TokenType::Keyword); // 'def'
+        assert_eq!(tokens[code.find('#').unwrap()], TokenType::Comment);
+    }
+
+    #[test]
+    fn c_preprocessor_is_macro() {
+        let code = "#include <stdio.h>";
+        let tokens = highlight(code, Language::C.spec());
+        assert_eq!(tokens[0], TokenType::Macro); // '#'
+    }
 }

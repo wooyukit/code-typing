@@ -4,6 +4,7 @@ use ratatui::Terminal;
 use std::io;
 use std::time::{Duration, Instant};
 
+use super::state::Screen;
 use super::{ui, GameState};
 
 pub struct Game {
@@ -44,59 +45,68 @@ impl Game {
         }
     }
 
+    /// Returns `false` to quit the game.
     fn handle_input(&mut self, key: KeyCode) -> bool {
-        // If in confirm quit mode, handle Y/N/ESC
+        // Quit confirmation intercepts everything else
         if self.game_state.confirm_quit {
             match key {
-                KeyCode::Char('y') | KeyCode::Char('Y') => {
-                    return false; // Quit the game
-                }
+                KeyCode::Char('y') | KeyCode::Char('Y') => return false,
                 KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
-                    self.game_state.confirm_quit = false; // Cancel quit
-                    return true;
+                    self.game_state.confirm_quit = false;
                 }
-                _ => return true, // Ignore other keys
+                _ => {}
             }
+            return true;
         }
 
+        match self.game_state.screen {
+            Screen::Menu => self.handle_menu_input(key),
+            Screen::Typing => self.handle_typing_input(key),
+        }
+    }
+
+    fn handle_menu_input(&mut self, key: KeyCode) -> bool {
         match key {
-            KeyCode::Char(c) => {
-                self.game_state.handle_input(c);
-                true
-            }
-            KeyCode::Tab => {
-                self.game_state.handle_input('\t');
-                true
-            }
-            KeyCode::Backspace => {
-                self.game_state.handle_backspace();
-                true
-            }
+            KeyCode::Up | KeyCode::Char('k') => self.game_state.menu_up(),
+            KeyCode::Down | KeyCode::Char('j') => self.game_state.menu_down(),
+            KeyCode::Enter => self.game_state.select_menu_language(),
+            KeyCode::Esc | KeyCode::Char('q') => self.game_state.confirm_quit = true,
+            _ => {}
+        }
+        true
+    }
+
+    fn handle_typing_input(&mut self, key: KeyCode) -> bool {
+        match key {
+            KeyCode::Char(c) => self.game_state.handle_input(c),
+            KeyCode::Tab => self.game_state.handle_input('\t'),
+            KeyCode::Backspace => self.game_state.handle_backspace(),
             KeyCode::Enter => {
                 if self.game_state.game_over {
                     self.game_state.reset();
                 } else {
                     self.game_state.handle_input('\n');
                 }
-                true
             }
-            KeyCode::Left | KeyCode::Right => {
-                // Switch to random sample (only works before typing starts)
-                self.game_state.random_sample();
-                true
+            // Switch sample — only before typing starts (handled in state)
+            KeyCode::Left | KeyCode::Right => self.game_state.random_sample(),
+            // Back to the language menu — only when not mid-typing
+            KeyCode::Up | KeyCode::Down => {
+                if self.game_state.first_input_time.is_none() || self.game_state.game_over {
+                    self.game_state.open_menu();
+                }
             }
             KeyCode::Esc => {
                 if self.game_state.first_input_time.is_some() && !self.game_state.game_over {
                     // Typing in progress - restart current sample
                     self.game_state.restart_current();
-                    true
                 } else {
                     // Not started or game over - show quit confirmation
                     self.game_state.confirm_quit = true;
-                    true
                 }
             }
-            _ => true,
+            _ => {}
         }
+        true
     }
 }

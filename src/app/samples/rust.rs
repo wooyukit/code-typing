@@ -1,6 +1,5 @@
-/// Code sample with optional expected output
-/// (code, expected_output)
-pub const CODE_SAMPLES: &[(&str, &str)] = &[
+//! Rust code samples: (code, expected_output). Empty output suppresses the output panel.
+pub const SAMPLES: &[(&str, &str)] = &[
     // 1. QuickSort partition
     ("fn partition<T: Ord>(arr: &mut [T]) -> usize {\n    let len = arr.len();\n    let pivot = len / 2;\n    arr.swap(pivot, len - 1);\n    let mut store = 0;\n    for i in 0..len - 1 {\n        if arr[i] < arr[len - 1] {\n            arr.swap(i, store);\n            store += 1;\n        }\n    }\n    arr.swap(store, len - 1);\n    store\n}", ""),
 
